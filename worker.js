@@ -8,7 +8,6 @@ const ALLOWED_DOMAIN = 'your.domain.com'
 const AUTH_CODE = 'change-this-auth-code'
 const ENABLE_ALLOWLIST = false
 const ALLOWED_PATHS = []
-const DAILY_RETENTION_DAYS = 365
 const DEFAULT_HISTORY_DAYS = 30
 const MAX_HISTORY_DAYS = 365
 
@@ -106,7 +105,6 @@ async function handleCreateCounter(request, db) {
 
   const counter = normalizeCounterName(body.counter)
   const badgeConfig = normalizeBadgeConfig(body)
-  const label = badgeConfig.label
   if (!counter) {
     return jsonResponse({ error: 'Counter key must be 1-512 characters and cannot include control characters' }, 400)
   }
@@ -224,10 +222,6 @@ async function handleCounterRequest(url, db, counter, isSvg) {
     return textResponse('Not Found', 404)
   }
 
-  if (!await counterExists(db, counter)) {
-    return textResponse('Counter not found', 404)
-  }
-
   const action = (url.searchParams.get('action') || 'view').toLowerCase()
   if (!['view', 'hit'].includes(action)) {
     return jsonResponse({ error: 'Invalid action. Use view or hit.' }, 400)
@@ -236,17 +230,17 @@ async function handleCounterRequest(url, db, counter, isSvg) {
   const today = todayString()
   const totalKey = `${counter}:total`
   const dailyKey = `${counter}:daily:${today}`
-  let total = await getCounter(db, totalKey)
-  let daily = await getCounter(db, dailyKey)
+  let total
+  let daily
 
   if (action === 'hit') {
-    total += 1
-    daily += 1
-    await Promise.all([
-      updateCounter(db, totalKey, total),
-      updateCounter(db, dailyKey, daily),
-      cleanupOldDailyData(db, counter),
-    ])
+    total = await incrementExistingCounter(db, totalKey)
+    if (total === null) return textResponse('Counter not found', 404)
+    daily = await incrementCounter(db, dailyKey)
+  } else {
+    total = await getCounterValue(db, totalKey)
+    if (total === null) return textResponse('Counter not found', 404)
+    daily = await getCounter(db, dailyKey)
   }
 
   if (isSvg) {
@@ -282,20 +276,12 @@ async function handleVisitorBadge(url, db) {
     return textResponse('Not Found', 404)
   }
 
-  if (!await counterExists(db, counter)) {
+  const today = todayString()
+  const total = await incrementExistingCounter(db, `${counter}:total`)
+  if (total === null) {
     return textResponse('Counter not found', 404)
   }
-
-  const today = todayString()
-  const totalKey = `${counter}:total`
-  const dailyKey = `${counter}:daily:${today}`
-  const total = await getCounter(db, totalKey) + 1
-  const daily = await getCounter(db, dailyKey) + 1
-  await Promise.all([
-    updateCounter(db, totalKey, total),
-    updateCounter(db, dailyKey, daily),
-    cleanupOldDailyData(db, counter),
-  ])
+  const daily = await incrementCounter(db, `${counter}:daily:${today}`)
 
   return svgResponse(generateBadgeSvg({
     title: getParam(url, 'label', 'title') || 'Visitors',
@@ -315,12 +301,11 @@ async function handleStatusPage(url, db) {
     return htmlResponse(renderStatusPage({ error: 'Missing or invalid path' }))
   }
 
-  if (!await counterExists(db, counter)) {
+  const today = todayString()
+  const total = await getCounterValue(db, `${counter}:total`)
+  if (total === null) {
     return htmlResponse(renderStatusPage({ counter, error: 'Counter not found' }))
   }
-
-  const today = todayString()
-  const total = await getCounter(db, `${counter}:total`)
   const daily = await getCounter(db, `${counter}:daily:${today}`)
   const series = await getDailySeries(db, counter, 30)
   return htmlResponse(renderStatusPage({ counter, total, daily, series }))
@@ -396,20 +381,33 @@ async function getLegacyCounterLabel(db, counter) {
     .all()
   return results.length ? String(results[0].count || '') : ''
 }
-async function getCounter(db, key) {
+async function getCounterValue(db, key) {
   const { results } = await db.prepare('SELECT count FROM counters WHERE name = ?')
     .bind(key)
     .all()
-  return results.length ? Number(results[0].count) : 0
+  return results.length ? Number(results[0].count) : null
 }
 
-async function updateCounter(db, key, value) {
-  await db.prepare(`
+async function getCounter(db, key) {
+  return await getCounterValue(db, key) ?? 0
+}
+
+async function incrementExistingCounter(db, key) {
+  const { results } = await db.prepare('UPDATE counters SET count = count + 1 WHERE name = ? RETURNING count')
+    .bind(key)
+    .all()
+  return results.length ? Number(results[0].count) : null
+}
+
+async function incrementCounter(db, key) {
+  const { results } = await db.prepare(`
     INSERT INTO counters (name, count)
-    VALUES (?, ?)
+    VALUES (?, 1)
     ON CONFLICT(name)
-    DO UPDATE SET count = excluded.count
-  `).bind(key, value).run()
+    DO UPDATE SET count = count + 1
+    RETURNING count
+  `).bind(key).all()
+  return Number(results[0].count)
 }
 
 async function getDailySeries(db, counter, days) {
@@ -434,14 +432,6 @@ async function getDailySeries(db, counter, days) {
     date,
     count: countByDate.get(date) || 0,
   }))
-}
-
-async function cleanupOldDailyData(db, counter) {
-  const cutoff = offsetDateString(-DAILY_RETENTION_DAYS)
-  const prefix = `${counter}:daily:`
-  await db.prepare('DELETE FROM counters WHERE substr(name, 1, ?) = ? AND name < ?')
-    .bind(prefix.length, prefix, `${prefix}${cutoff}`)
-    .run()
 }
 
 function generateBadgeSvg({ title, titleBg, countBg, edgeFlat, style, labelStyle, dailyCount, totalCount }) {
@@ -668,8 +658,8 @@ function renderGeneratorPage() {
         </label>
         <label>Badge Type
           <select id="labelStyle">
-            <option value="none">total only</option>
             <option value="default">today / total</option>
+            <option value="none">total only</option>
           </select>
         </label>
       </div>
@@ -825,7 +815,7 @@ function renderGeneratorPage() {
           $('source').value = item.counter
           $('label').value = config.label || ''
           $('style').value = config.style || 'flat'
-          $('labelStyle').value = config.labelStyle || 'none'
+          $('labelStyle').value = config.labelStyle || 'default'
           setPickerColor('labelColor', config.labelColor || '#A4D3EE')
           setPickerColor('countColor', config.countColor || '#555555')
           updateOutputs(item.counter)
@@ -1032,7 +1022,7 @@ function normalizeBadgeConfig(value = {}) {
     labelColor: normalizeStoredHex(value.labelColor, '#A4D3EE'),
     countColor: normalizeStoredHex(value.countColor, '#555555'),
     style: normalizeBadgeStyle(value.style || 'flat', false),
-    labelStyle: normalizeLabelStyle(value.labelStyle || 'none'),
+    labelStyle: normalizeLabelStyle(value.labelStyle || 'default'),
   }
 }
 
@@ -1141,6 +1131,13 @@ function htmlResponse(html) {
 function textResponse(text, status) {
   return new Response(text, { status })
 }
+
+
+
+
+
+
+
 
 
 

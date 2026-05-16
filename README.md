@@ -59,7 +59,7 @@ Inputs:
 - Label Background, default `#A4D3EE`
 - Count Background, default `#555555`
 - Badge Style: `flat`, `flat-square`, `plastic`, `for-the-badge`, `social`
-- Badge Type: `total only` or `today / total`
+- Badge Type: `today / total` by default, or `total only`
 
 The URL field is the public key for the badge data and status page, following the original hits counter model. A custom public key, page name, repository path, or Chinese key is also supported.
 
@@ -119,6 +119,7 @@ curl -X POST https://your.domain.com/api/delete \
 | `labelStyle` | `none` or `default`             |
 
 Compatible aliases are still accepted: `title`, `title_bg`, `count_bg`, and `counter`.
+
 
 
 
