@@ -167,6 +167,7 @@ async function handleListCounters(request, db) {
     counters.push({
       counter,
       config: await getCounterConfig(db, counter),
+      daily: await getCounter(db, ${counter}:daily:),
       total: Number(row.count) || 0,
     })
   }
@@ -577,10 +578,12 @@ function renderGeneratorPage() {
     main { max-width: 1120px; margin: 0 auto; padding: 36px 18px 56px; }
     h1 { margin: 0 0 8px; font-size: 32px; letter-spacing: 0; }
     .repo-title { color: #24292f; display: inline-block; font-size: 34px; font-weight: 850; letter-spacing: 0; text-decoration: none; }
-    .brand-card { display: flex; justify-content: space-between; gap: 16px; align-items: center; border: 1px solid #d0d7de; border-radius: 8px; background: #fff; padding: 14px 16px; margin-top: 14px; }
-    .brand-card a { color: #0969da; font-weight: 750; text-decoration: none; }
-    .brand-card a:hover { text-decoration: underline; }
-    .brand-sub { color: #57606a; font-size: 13px; }
+    .repo-title:hover { color: #0969da; text-decoration: underline; }
+    .product-head { margin-bottom: 18px; }
+    .product-head p { margin: 10px 0 6px; }
+    .author-line { color: #57606a; font-size: 13px; }
+    .author-line a { color: #0969da; font-weight: 750; text-decoration: none; }
+    .author-line a:hover { text-decoration: underline; }
     p { color: #57606a; line-height: 1.65; }
     .panel { background: #fff; border: 1px solid #d0d7de; border-radius: 8px; padding: 20px; margin-top: 18px; }
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
@@ -627,7 +630,7 @@ function renderGeneratorPage() {
 </head>
 <body>
   <main>
-    <header class="product-head"><a class="repo-title" href="https://github.com/FuTseYi/cloudflare-d1-visit-counter" target="_blank" rel="noopener noreferrer">cloudflare-d1-visit-counter</a><p>Open-source visitor badge and status chart generator powered by Cloudflare Workers and D1.</p><div class="author-line">Author: <a href="https://github.com/FuTseYi" target="_blank" rel="noopener noreferrer">FuTseYi</a></div></header><div class="brand-sub">Author: <a href="https://github.com/FuTseYi" target="_blank" rel="noopener noreferrer">FuTseYi</a></div></div>
+    <header class="product-head"><a class="repo-title" href="https://github.com/FuTseYi/cloudflare-d1-visit-counter" target="_blank" rel="noopener noreferrer">cloudflare-d1-visit-counter</a><p>Open-source visitor badge and status chart generator powered by Cloudflare Workers and D1.</p><div class="author-line">Author: <a href="https://github.com/FuTseYi" target="_blank" rel="noopener noreferrer">FuTseYi</a></div></header>
     <section class="panel">
       <div class="grid">
         <label style="grid-column: 1 / -1;">Auth Code<input id="authCode" type="password"></label>
@@ -789,14 +792,18 @@ function renderGeneratorPage() {
         const name = document.createElement('div')
         name.className = 'counter-name'
         name.textContent = item.counter
+        const config = item.config || {}
         const badge = document.createElement('div')
-        badge.className = 'saved-badge'
+        badge.className = 'saved-badge saved-badge-' + (config.style || 'flat')
         const badgeLabel = document.createElement('span')
         badgeLabel.className = 'saved-badge-label'
-        badgeLabel.textContent = item.label || 'not set'
+        badgeLabel.textContent = config.label || 'not set'
+        badgeLabel.style.background = config.labelColor || '#A4D3EE'
+        badgeLabel.style.color = readableTextColor(config.labelColor || '#A4D3EE')
         const badgeCount = document.createElement('span')
         badgeCount.className = 'saved-badge-count'
-        badgeCount.textContent = item.total
+        badgeCount.textContent = config.labelStyle === 'none' ? item.total : (item.daily || 0) + ' / ' + item.total
+        badgeCount.style.background = config.countColor || '#555555'
         badge.append(badgeLabel, badgeCount)
         const total = document.createElement('div')
         total.className = 'counter-total'
@@ -872,7 +879,7 @@ function renderGeneratorPage() {
       const res = await fetch('/api/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ counter, authCode, label: $('label').value.trim() })
+        body: JSON.stringify({ counter, authCode, label: label.value.trim(), labelColor: labelColor.value, countColor: countColor.value, style: style.value, labelStyle: labelStyle.value })
       })
       const data = await res.json()
       if (!res.ok && !data.exists) {
@@ -983,13 +990,30 @@ function renderStatusPage({ counter = '', total = 0, daily = 0, series = [], err
 </head>
 <body>
   <main>
-    ${error ? `<section class="panel error">${escapeXml(error)}</section>` : `<section class="topline"><h1>Analytics Overview</h1><p class="overview">Overview for ${safeCounter}</p><div class="project-line">Powered by <strong>cloudflare-d1-visit-counter</strong> · Author: <a href="https://github.com/FuTseYi" target="_blank" rel="noopener noreferrer">FuTseYi</a></div></section><section class="center"><p class="sub">Comprehensive statistics for the last 30 days</p></section><section class="panel stats"><div class="stat"><div class="value">${daily}</div><div class="label">Today</div></div><div class="stat"><div class="value">${total}</div><div class="label">Total visits</div></div><div class="stat"><div class="value">30</div><div class="label">Days in chart</div></div></section><section class="panel"><div class="chart-wrap">${chart}</div></section><p class="footer-note">Powered by cloudflare-d1-visit-counter. Author: <a href="https://github.com/FuTseYi" target="_blank" rel="noopener noreferrer">FuTseYi</a>. Last generated: ${updatedAt}.</p>`}
+    ${error ? `<section class="panel error">${escapeXml(error)}</section>` : `<section class="topline"><h1>Analytics Overview</h1><p class="overview">Overview for</p><div class="target-key">${safeCounter}</div><div class="project-line">Powered by <a class="project-link" href="https://github.com/FuTseYi/cloudflare-d1-visit-counter" target="_blank" rel="noopener noreferrer">cloudflare-d1-visit-counter</a> · Author: <a class="project-link" href="https://github.com/FuTseYi" target="_blank" rel="noopener noreferrer">FuTseYi</a></div></section><section class="center"><p class="sub">Comprehensive statistics for the last 30 days · Last generated: ${updatedAt}</p></section><section class="panel stats"><div class="stat"><div class="value">${daily}</div><div class="label">Today</div></div><div class="stat"><div class="value">${total}</div><div class="label">Total visits</div></div><div class="stat"><div class="value">30</div><div class="label">Days in chart</div></div></section><section class="panel"><div class="chart-wrap">${chart}</div></section>`}
   </main>
 </body>
 </html>`
 }
 function isCounterAllowed(counter) {
   return !ENABLE_ALLOWLIST || ALLOWED_PATHS.includes(counter)
+}
+
+function normalizeBadgeConfig(value = {}) {
+  return {
+    label: normalizeBadgeLabel(value.label),
+    labelColor: normalizeStoredHex(value.labelColor, '#A4D3EE'),
+    countColor: normalizeStoredHex(value.countColor, '#555555'),
+    style: normalizeBadgeStyle(value.style || 'flat', false),
+    labelStyle: normalizeLabelStyle(value.labelStyle || 'none'),
+  }
+}
+
+function normalizeStoredHex(value, fallback) {
+  const raw = String(value || '').trim()
+  if (/^#[0-9a-fA-F]{6}$/.test(raw)) return raw.toUpperCase()
+  if (/^[0-9a-fA-F]{6}$/.test(raw)) return ('#' + raw).toUpperCase()
+  return fallback
 }
 
 function normalizeBadgeLabel(value) {
@@ -1090,6 +1114,9 @@ function htmlResponse(html) {
 function textResponse(text, status) {
   return new Response(text, { status })
 }
+
+
+
 
 
 
