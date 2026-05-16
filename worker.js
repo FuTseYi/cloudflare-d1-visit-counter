@@ -444,7 +444,6 @@ function generateBadgeSvg({ title, titleBg, countBg, edgeFlat, style, labelStyle
   const height = badgeStyle === 'for-the-badge' ? 28 : 20
   const fontSize = badgeStyle === 'for-the-badge' ? 12 : 11
   const baseline = badgeStyle === 'for-the-badge' ? 18 : 14
-  const shadowBaseline = baseline + 1
   const titleWidth = getTextWidth(titleText) + (badgeStyle === 'for-the-badge' ? 14 : 0)
   const countWidth = getTextWidth(countText) + (badgeStyle === 'for-the-badge' ? 14 : 0)
   const width = titleWidth + countWidth
@@ -452,7 +451,8 @@ function generateBadgeSvg({ title, titleBg, countBg, edgeFlat, style, labelStyle
   const titleColor = badgeStyle === 'social' ? '#fff' : resolveColor(titleBg)
   const countColor = resolveColor(countBg)
   const border = badgeStyle === 'social' ? `<rect x="0.5" y="0.5" width="${width - 1}" height="${height - 1}" rx="${radius}" fill="none" stroke="#d0d7de"/>` : ''
-  const titleTextColor = badgeStyle === 'social' ? '#24292f' : '#fff'
+  const titleTextColor = badgeStyle === 'social' ? '#24292f' : getReadableTextColor(titleColor)
+  const countTextColor = getReadableTextColor(countColor)
   const gradientOpacity = badgeStyle === 'plastic' ? '.22' : '.10'
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" role="img" aria-label="${safeTitle}: ${countText}">
@@ -468,10 +468,8 @@ function generateBadgeSvg({ title, titleBg, countBg, edgeFlat, style, labelStyle
   </g>
   ${border}
   <g text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="${fontSize}" font-weight="${badgeStyle === 'for-the-badge' ? '700' : '400'}">
-    <text x="${Math.floor(titleWidth / 2)}" y="${shadowBaseline}" fill="#010101" fill-opacity=".25">${safeTitle}</text>
     <text x="${Math.floor(titleWidth / 2)}" y="${baseline}" fill="${titleTextColor}">${safeTitle}</text>
-    <text x="${titleWidth + Math.floor(countWidth / 2)}" y="${shadowBaseline}" fill="#010101" fill-opacity=".25">${countText}</text>
-    <text x="${titleWidth + Math.floor(countWidth / 2)}" y="${baseline}" fill="#fff">${countText}</text>
+    <text x="${titleWidth + Math.floor(countWidth / 2)}" y="${baseline}" fill="${countTextColor}">${countText}</text>
   </g>
 </svg>`
 }
@@ -485,6 +483,17 @@ function normalizeBadgeStyle(style, edgeFlat) {
   if (edgeFlat) return 'flat-square'
   const value = String(style || 'flat').toLowerCase()
   return ['flat', 'flat-square', 'plastic', 'for-the-badge', 'social'].includes(value) ? value : 'flat'
+}
+
+function getReadableTextColor(color) {
+  let hex = resolveColor(color).replace('#', '')
+  if (hex.length === 3) {
+    hex = hex.split('').map(char => char + char).join('')
+  }
+  const r = parseInt(hex.slice(0, 2), 16)
+  const g = parseInt(hex.slice(2, 4), 16)
+  const b = parseInt(hex.slice(4, 6), 16)
+  return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? '#24292f' : '#fff'
 }
 function generateHistorySvg({ title, series, width, height, chartType, color }) {
   const padding = { top: 58, right: 34, bottom: 58, left: 58 }
@@ -1134,35 +1143,4 @@ function htmlResponse(html) {
 function textResponse(text, status) {
   return new Response(text, { status })
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
