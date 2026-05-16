@@ -2,59 +2,30 @@
 
 [中文说明](README.md) | English
 
-**cloudflare-d1-visit-counter** is an open-source, self-hosted, low-cost **Cloudflare Workers + Cloudflare D1 visitor counter** with SVG badges, GitHub README badges, a badge generator dashboard, public status pages, and history charts.
+**cloudflare-d1-visit-counter** is an open-source, self-hosted, low-cost visitor counter powered by **Cloudflare Workers + Cloudflare D1**. It generates SVG visitor badges for GitHub README files, personal websites, blogs, documentation sites, and project pages, with a dashboard, public status pages, and history charts.
 
-Keywords: `Cloudflare Workers visitor counter`, `Cloudflare D1 visit counter`, `GitHub README visitor badge`, `self-hosted visitor badge`, `SVG hit counter`, `website visit counter`, `open source badge generator`.
+## Quick Start
 
-Repository: [FuTseYi/cloudflare-d1-visit-counter](https://github.com/FuTseYi/cloudflare-d1-visit-counter)  
-Author: [FuTseYi](https://github.com/FuTseYi)
-
-## Quick Links
-
-- [Quick Start](#quick-start)
-- [API](#api)
-- [Security and Privacy](#security-and-privacy)
-- [License](#license)
+- [Deploy in minutes](#quick-start-deployment)
+- [Create your first badge](#dashboard)
+- [Copy Markdown / HTML / Image URL](#examples)
+- [Read the API reference](docs/API.md)
+- [Security and privacy](docs/SECURITY.md)
 
 ## Highlights
 
-- Single-file Cloudflare Worker.
-- D1-backed total and daily visit counters.
-- Built-in generator for Markdown, linked Markdown, HTML, image URL, and status URL.
-- Auth-protected create, list, and delete APIs.
-- Public SVG badge endpoint for existing counters only.
-- Public status page with today, total, and 30-day trend.
-- Hex colors, Shields-style named colors, and multiple badge styles.
-- Counter keys can be URLs, repository paths, page names, or Chinese text.
-- No public auto-create behavior, which helps reduce abuse and D1 waste.
-
-## Why This Project
-
-Most visitor badge projects solve only one part of the problem: showing a number. This project is designed as a complete self-hosted product: badge generation, protected management, saved styles, public status pages, and a low-cost D1 data model are built in from the start.
-
-| Feature | This project | Common badge counters |
-| --- | --- | --- |
-| Self-hosted | Your Worker, D1, and domain | Often hosted by a public service |
-| Management | Create, list, reuse, and delete counters | Usually URL-only |
-| Abuse control | Public badge URLs cannot create counters | Random paths may create or pollute data |
-| Status page | Built in for every counter | Often badge only |
-| Saved badge config | Stored in D1 | Often only URL parameters |
-| Output formats | Markdown, linked Markdown, HTML, image URL, status URL | Usually one or two formats |
-
-## Keyword Matrix
-
-| Search keyword | Built-in capability |
+| Feature | Design |
 | --- | --- |
-| Cloudflare Workers visitor counter | Serverless Worker runtime. |
-| Cloudflare D1 visit counter | D1 stores totals, daily visits, and badge config. |
-| GitHub README visitor badge | Markdown badge output for README files. |
-| self-hosted visitor badge | Your domain, Worker, and D1 database. |
-| SVG hit counter | Lightweight SVG badge response. |
-| visitor badge status page | Public status page and trend chart per counter. |
-| open source badge generator | Built-in dashboard for Markdown, HTML, image URL, and status URL. |
-| Shields style badge | Supports flat, flat-square, plastic, for-the-badge, and social styles. |
+| Self-hosted | Use your own Cloudflare Worker, D1 database, and domain. |
+| Protected management | `AUTH_CODE` protects create, list, and delete operations. |
+| Abuse control | Public badge URLs cannot create counters automatically. |
+| Dashboard | Create, preview, load, reuse, and delete counters. |
+| Status page | Every counter gets a public status page and trend chart. |
+| Saved styles | Badge label, colors, style, and type are stored in D1. |
+| Flexible keys | Counter keys can be URLs, repository paths, page names, or Chinese text. |
+| Low cost | One Worker, one D1 table, no external runtime dependencies. |
 
-## Quick Start
+## Quick Start Deployment
 
 Create a D1 table:
 
@@ -74,63 +45,53 @@ const ENABLE_ALLOWLIST = false
 const ALLOWED_PATHS = []
 ```
 
-Add a D1 binding:
+Bind D1:
 
 | Binding name | Value |
 | --- | --- |
 | `HITS` | Your D1 database |
 
-Bind the Worker to the same custom domain as `ALLOWED_DOMAIN`, then open:
+Then bind a custom domain matching `ALLOWED_DOMAIN` and open:
 
 ```url
 https://your.domain.com/
 ```
 
-## API
+## Dashboard
 
-### Badge
+The dashboard creates counters, previews badges, generates embed links, and manages existing counters.
 
-```url
-GET /api/combined?path={counterKey}&label={badgeLabel}&labelColor=%23A4D3EE&countColor=%23555555&style=flat&labelStyle=default
+| Field | Description |
+| --- | --- |
+| Auth Code | Required for create, load, and delete. |
+| URL | Real counter key for the badge data and status page. |
+| Badge Label | Display text only. It does not change the counter key. |
+| Label Background | Left-side badge color. Default `#A4D3EE`. |
+| Count Background | Right-side count color. Default `#555555`. |
+| Badge Style | `flat`, `flat-square`, `plastic`, `for-the-badge`, `social`. |
+| Badge Type | `today / total` by default, or `total only`. |
+
+## Examples
+
+```md
+![Visitors](https://your.domain.com/api/combined?path=https%3A%2F%2Fexample.com%2F&label=Visitors&labelColor=%23A4D3EE&countColor=%23555555&style=flat&labelStyle=default)
 ```
 
-Returns an SVG badge and increments an existing counter.
-
-### Status page
-
-```url
-GET /status?path={counterKey}
+```html
+<a href="https://your.domain.com/status?path=https%3A%2F%2Fexample.com%2F" target="_blank" rel="noopener noreferrer">
+  <img src="https://your.domain.com/api/combined?path=https%3A%2F%2Fexample.com%2F&label=Visitors&labelColor=%23A4D3EE&countColor=%23555555&style=flat&labelStyle=default" alt="Visitor badge" />
+</a>
 ```
 
-Shows today, total visits, and a 30-day trend.
+## Documentation
 
-### Management
-
-```bash
-curl -X POST https://your.domain.com/api/create \
-  -H "Content-Type: application/json" \
-  -d '{"counter":"https://example.com/","authCode":"your-auth-code","label":"Visitors"}'
-
-curl -X POST https://your.domain.com/api/list \
-  -H "Content-Type: application/json" \
-  -d '{"authCode":"your-auth-code"}'
-
-curl -X POST https://your.domain.com/api/delete \
-  -H "Content-Type: application/json" \
-  -d '{"counter":"https://example.com/","authCode":"your-auth-code"}'
-```
-
-## Security and Privacy
-
-- `AUTH_CODE` protects create, list, and delete operations.
-- Public badge and status URLs are visible to anyone with the counter key.
-- The Worker does not store IP addresses, user agents, referrers, cookies, or visitor identity.
-- Enable `ENABLE_ALLOWLIST` if you only want fixed counter keys.
-- Public badge URLs do not create new counters automatically.
+| Document | Content |
+| --- | --- |
+| [API Reference](docs/API.md) | Badge, status, management, and compatibility endpoints. |
+| [Architecture](docs/ARCHITECTURE.md) | D1 data model, hot path, and cost design. |
+| [Security](docs/SECURITY.md) | Auth Code, public URL boundary, and privacy notes. |
+| [Roadmap](docs/ROADMAP.md) | Planned improvements. |
 
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
-
-
-
