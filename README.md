@@ -54,14 +54,14 @@ The homepage creates counters and outputs visitorbadge-style embed formats:
 Inputs:
 
 - Auth Code
-- URL (or custom public key)
+- URL
 - Badge Label
 - Label Background, default `#A4D3EE`
 - Count Background, default `#555555`
 - Badge Style: `flat`, `flat-square`, `plastic`, `for-the-badge`, `social`
 - Badge Type: `total only` or `today / total`
 
-The `path` / URL key is public and directly identifies the badge data and status page, following the original hits counter model. You can use a full URL, page name, repository path, or Chinese key.
+The URL field is the public key for the badge data and status page, following the original hits counter model. A custom public key, page name, repository path, or Chinese key is also supported.
 
 Created counters can be listed and deleted from the dashboard. The list shows the public counter key, saved badge appearance, and visit totals. List/delete/create all require `AUTH_CODE`; public badge/status URLs do not.
 
@@ -119,6 +119,7 @@ curl -X POST https://your.domain.com/api/delete \
 | `labelStyle` | `none` or `default`             |
 
 Compatible aliases are still accepted: `title`, `title_bg`, `count_bg`, and `counter`.
+
 
 
 

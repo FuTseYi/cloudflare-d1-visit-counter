@@ -196,8 +196,8 @@ async function handleDeleteCounter(request, db) {
   }
 
   const dailyPrefix = `${counter}:daily:`
-  await db.prepare('DELETE FROM counters WHERE name = ? OR name = ? OR substr(name, 1, ?) = ?')
-    .bind(`${counter}:total`, `${counter}:meta:label`, dailyPrefix.length, dailyPrefix)
+  await db.prepare('DELETE FROM counters WHERE name = ? OR name = ? OR name = ? OR substr(name, 1, ?) = ?')
+    .bind(`${counter}:total`, `${counter}:meta:label`, `${counter}:meta:config`, dailyPrefix.length, dailyPrefix)
     .run()
 
   return jsonResponse({ success: true, counter })
@@ -577,13 +577,10 @@ function renderGeneratorPage() {
     body { margin: 0; background: #f6f8fa; color: #24292f; }
     main { max-width: 1120px; margin: 0 auto; padding: 36px 18px 56px; }
     h1 { margin: 0 0 8px; font-size: 32px; letter-spacing: 0; }
-    .repo-title { color: #24292f; display: inline-block; font-size: 34px; font-weight: 850; letter-spacing: 0; text-decoration: none; }
-    .repo-title:hover { color: #0969da; text-decoration: underline; }
-    .product-head { margin-bottom: 18px; }
-    .product-head p { margin: 10px 0 6px; }
-    .author-line { color: #57606a; font-size: 13px; }
-    .author-line a { color: #0969da; font-weight: 750; text-decoration: none; }
-    .author-line a:hover { text-decoration: underline; }
+    .product-head { margin-bottom: 18px; text-align: center; }
+    .powered-line { color: #57606a; font-size: 14px; }
+    .powered-line a { color: #0969da; font-weight: 750; text-decoration: none; }
+    .powered-line a:hover { text-decoration: underline; }
     p { color: #57606a; line-height: 1.65; }
     .panel { background: #fff; border: 1px solid #d0d7de; border-radius: 8px; padding: 20px; margin-top: 18px; }
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
@@ -618,10 +615,6 @@ function renderGeneratorPage() {
     .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
     .preview { min-height: 34px; display: flex; align-items: center; }
     .hint { margin: 8px 0 0; font-size: 12px; color: #57606a; }
-    .meta { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 10px; font-size: 13px; color: #57606a; }
-    .meta a { color: #0969da; text-decoration: none; font-weight: 650; }
-    .meta a:hover { text-decoration: underline; }
-    footer { margin-top: 22px; color: #57606a; font-size: 13px; }
     .empty { color: #6e7781; font-style: italic; }
     .color-field { position: relative; display: grid; gap: 6px; font-size: 13px; font-weight: 650; }
     .color-button { min-height: 38px; border: 1px solid #d0d7de; border-radius: 6px; padding: 0 12px; color: #fff; font-weight: 700; text-shadow: 0 1px 1px rgba(0,0,0,.25); }
@@ -642,7 +635,7 @@ function renderGeneratorPage() {
       <div class="grid">
         <label style="grid-column: 1 / -1;">Auth Code<input id="authCode" type="password"></label>
         <label><span class="field-title"><span>URL</span><span class="field-note">Custom public key is also supported</span></span><input id="source"></label>
-        <label>Badge Label<input id="label"></label>
+        <label><span class="field-title"><span>Badge Label</span><span class="field-note"></span></span><input id="label"></label>
         <div class="color-row">
         <div class="color-field" data-color-field="labelColor">
           <span>Label Background</span>
@@ -688,6 +681,7 @@ function renderGeneratorPage() {
     <section class="panel">
       <h2>Created Counters</h2>
       <p class="hint">Load requires Auth Code. Deleting a counter removes its badge data and status chart data.</p>
+      <div class="counter-toolbar"><button id="selectAllCounters" class="secondary-btn" type="button">Select All</button><button id="deleteSelectedCounters" class="danger-btn" type="button">Delete Selected</button></div>
       <div id="counterList" class="counter-list"><span class="empty">No counters loaded.</span></div>
     </section>
     <section class="panel">      <p>Markdown (badge only)</p><div class="output-row"><code id="markdownCode" class="empty">Create a counter first.</code><button class="copy-btn" data-copy="markdownCode">Copy</button></div>
@@ -840,24 +834,7 @@ function renderGeneratorPage() {
         deleteButton.className = 'danger-btn'
         deleteButton.textContent = 'Delete'
         deleteButton.addEventListener('click', async () => {
-          if (!confirm('Delete this counter and its chart data?')) return
-          const authCode = $('authCode').value.trim()
-          if (!authCode) {
-            alert('Auth code is required')
-            return
-          }
-          const res = await fetch('/api/delete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ counter: item.counter, authCode })
-          })
-          const data = await res.json()
-          if (!res.ok) {
-            alert(data.error || 'Delete failed')
-            return
-          }
-          if (createdCounter === item.counter) createdCounter = ''
-          await loadCounters()
+          await deleteCounters([item.counter])
         })
         row.append(checkbox, info, useButton, deleteButton)
         list.appendChild(row)
@@ -891,7 +868,8 @@ function renderGeneratorPage() {
         if (createdCounter === counter) createdCounter = ''
       }
       await loadCounters()
-    }    async function loadCounters() {
+    }
+    async function loadCounters() {
       const authCode = $('authCode').value.trim()
       if (!authCode) {
         alert('Auth code is required')
@@ -935,6 +913,12 @@ function renderGeneratorPage() {
       await loadCounters()
     })
     $('loadCounters').addEventListener('click', loadCounters)
+    $('selectAllCounters').addEventListener('click', () => {
+      const boxes = Array.from(document.querySelectorAll('.counter-select'))
+      const shouldSelect = boxes.some(box => !box.checked)
+      for (const box of boxes) box.checked = shouldSelect
+    })
+    $('deleteSelectedCounters').addEventListener('click', async () => deleteCounters(selectedCounters()))
     for (const id of ['source', 'label', 'style', 'labelStyle']) {
       $(id).addEventListener('input', () => updateOutputs(counterValue()))
       $(id).addEventListener('change', () => updateOutputs(counterValue()))
@@ -1156,6 +1140,10 @@ function htmlResponse(html) {
 function textResponse(text, status) {
   return new Response(text, { status })
 }
+
+
+
+
 
 
 
