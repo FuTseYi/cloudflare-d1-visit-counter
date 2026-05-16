@@ -2,9 +2,11 @@
 
 Open-source Cloudflare Workers + D1 visitor badge and status chart service.
 
-Repository: [FuTseYi/cloudflare-d1-visit-counter](https://github.com/FuTseYi/cloudflare-d1-visit-counter)
+Project: `cloudflare-d1-visit-counter`
 
-Created by FuTseYi. All rights reserved.
+Author: [FuTseYi](https://github.com/FuTseYi)
+
+All rights reserved.
 
 ## Core files
 
@@ -117,6 +119,7 @@ curl -X POST https://your.domain.com/api/delete \
 | `labelStyle` | `none` or `default`             |
 
 Compatible aliases are still accepted: `title`, `title_bg`, `count_bg`, and `counter`.
+
 
 
 
