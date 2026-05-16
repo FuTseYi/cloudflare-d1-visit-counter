@@ -625,15 +625,15 @@ function renderGeneratorPage() {
     .palette { display: grid; grid-template-columns: repeat(6, 22px); gap: 9px; padding: 10px 0; }
     .swatch { width: 22px; height: 22px; min-height: 22px; border: 0; border-radius: 4px; padding: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); }
     .hex-input { width: 100%; box-sizing: border-box; min-height: 30px; font-size: 12px; }
-    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } .counter-item { grid-template-columns: auto minmax(0, 1fr); } .counter-item button { width: 100%; } .field-title { align-items: flex-start; flex-direction: column; gap: 2px; } .field-note { text-align: left; } }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } .powered-title { font-size: 26px; } .counter-item { grid-template-columns: auto minmax(0, 1fr); } .counter-item button { width: 100%; } .field-title { align-items: flex-start; flex-direction: column; gap: 2px; } .field-note { text-align: left; } }
   </style>
 </head>
 <body>
   <main>
-    <header class="product-head"><div class="powered-line">Powered by <a href="https://workers.cloudflare.com/" target="_blank" rel="noopener noreferrer">Cloudflare Workers</a> and <a href="https://developers.cloudflare.com/d1/" target="_blank" rel="noopener noreferrer">D1</a>.</div></header>
+    <header class="product-head"><div class="powered-title"><span class="powered-prefix">Powered by</span> <a href="https://github.com/FuTseYi/cloudflare-d1-visit-counter" target="_blank" rel="noopener noreferrer">cloudflare-d1-visit-counter</a></div></header>
     <section class="panel">
       <div class="grid">
-        <label style="grid-column: 1 / -1;">Auth Code<input id="authCode" type="password"></label>
+        <label style="grid-column: 1 / -1;">Auth Code<input id="authCode" type="password" placeholder="Enter auth code to unlock create, load, and delete"></label>
         <label><span class="field-title"><span>URL</span><span class="field-note">Custom public key is also supported</span></span><input id="source"></label>
         <label><span class="field-title"><span>Badge Label</span><span class="field-note"></span></span><input id="label"></label>
         <div class="color-row">
@@ -1140,6 +1140,9 @@ function htmlResponse(html) {
 function textResponse(text, status) {
   return new Response(text, { status })
 }
+
+
+
 
 
 
