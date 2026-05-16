@@ -105,7 +105,8 @@ async function handleCreateCounter(request, db) {
   }
 
   const counter = normalizeCounterName(body.counter)
-  const label = normalizeBadgeLabel(body.label)
+  const badgeConfig = normalizeBadgeConfig(body)
+  const label = badgeConfig.label
   if (!counter) {
     return jsonResponse({ error: 'Counter key must be 1-512 characters and cannot include control characters' }, 400)
   }
@@ -118,7 +119,7 @@ async function handleCreateCounter(request, db) {
 
   const exists = await counterExists(db, counter)
   if (exists) {
-    await setCounterLabel(db, counter, label)
+    await setCounterConfig(db, counter, badgeConfig)
     return jsonResponse({
       warning: 'Counter already exists',
       exists: true,
@@ -129,7 +130,7 @@ async function handleCreateCounter(request, db) {
   }
 
   await createCounter(db, counter)
-  await setCounterLabel(db, counter, label)
+  await setCounterConfig(db, counter, badgeConfig)
   return jsonResponse({
     success: true,
     counter,
@@ -165,7 +166,7 @@ async function handleListCounters(request, db) {
     const counter = String(row.name).slice(0, -6)
     counters.push({
       counter,
-      label: await getCounterLabel(db, counter),
+      config: await getCounterConfig(db, counter),
       total: Number(row.count) || 0,
     })
   }
@@ -364,22 +365,36 @@ async function createCounter(db, counter) {
     .run()
 }
 
-async function setCounterLabel(db, counter, label) {
+async function setCounterConfig(db, counter, config) {
   await db.prepare(`
     INSERT INTO counters (name, count)
     VALUES (?, ?)
     ON CONFLICT(name)
     DO UPDATE SET count = excluded.count
-  `).bind(`${counter}:meta:label`, label).run()
+  `).bind(`${counter}:meta:config`, JSON.stringify(config)).run()
 }
 
-async function getCounterLabel(db, counter) {
+async function getCounterConfig(db, counter) {
+  const { results } = await db.prepare('SELECT count FROM counters WHERE name = ?')
+    .bind(`${counter}:meta:config`)
+    .all()
+  if (!results.length) {
+    const legacy = await getLegacyCounterLabel(db, counter)
+    return normalizeBadgeConfig({ label: legacy })
+  }
+  try {
+    return normalizeBadgeConfig(JSON.parse(String(results[0].count || '{}')))
+  } catch {
+    return normalizeBadgeConfig({})
+  }
+}
+
+async function getLegacyCounterLabel(db, counter) {
   const { results } = await db.prepare('SELECT count FROM counters WHERE name = ?')
     .bind(`${counter}:meta:label`)
     .all()
   return results.length ? String(results[0].count || '') : ''
 }
-
 async function getCounter(db, key) {
   const { results } = await db.prepare('SELECT count FROM counters WHERE name = ?')
     .bind(key)
@@ -561,7 +576,7 @@ function renderGeneratorPage() {
     body { margin: 0; background: #f6f8fa; color: #24292f; }
     main { max-width: 1120px; margin: 0 auto; padding: 36px 18px 56px; }
     h1 { margin: 0 0 8px; font-size: 32px; letter-spacing: 0; }
-    .brand-name { font-weight: 850; letter-spacing: 0; }
+    .repo-title { color: #24292f; display: inline-block; font-size: 34px; font-weight: 850; letter-spacing: 0; text-decoration: none; }
     .brand-card { display: flex; justify-content: space-between; gap: 16px; align-items: center; border: 1px solid #d0d7de; border-radius: 8px; background: #fff; padding: 14px 16px; margin-top: 14px; }
     .brand-card a { color: #0969da; font-weight: 750; text-decoration: none; }
     .brand-card a:hover { text-decoration: underline; }
@@ -607,14 +622,12 @@ function renderGeneratorPage() {
     .palette { display: grid; grid-template-columns: repeat(6, 22px); gap: 9px; padding: 10px 0; }
     .swatch { width: 22px; height: 22px; min-height: 22px; border: 0; border-radius: 4px; padding: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); }
     .hex-input { width: 100%; box-sizing: border-box; min-height: 30px; font-size: 12px; }
-    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } .brand-card { align-items: flex-start; flex-direction: column; } }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } .repo-title { font-size: 28px; } }
   </style>
 </head>
 <body>
   <main>
-    <h1><span class="brand-name">cloudflare-d1-visit-counter</span></h1>
-    <p>Open-source visitor badge and status chart generator powered by Cloudflare Workers and D1.</p>
-    <div class="brand-card"><div><div class="brand-name">cloudflare-d1-visit-counter</div><div class="brand-sub">Open-source project for Cloudflare Workers + D1 visitor analytics.</div></div><div class="brand-sub">Author: <a href="https://github.com/FuTseYi" target="_blank" rel="noopener noreferrer">FuTseYi</a></div></div>
+    <header class="product-head"><a class="repo-title" href="https://github.com/FuTseYi/cloudflare-d1-visit-counter" target="_blank" rel="noopener noreferrer">cloudflare-d1-visit-counter</a><p>Open-source visitor badge and status chart generator powered by Cloudflare Workers and D1.</p><div class="author-line">Author: <a href="https://github.com/FuTseYi" target="_blank" rel="noopener noreferrer">FuTseYi</a></div></header><div class="brand-sub">Author: <a href="https://github.com/FuTseYi" target="_blank" rel="noopener noreferrer">FuTseYi</a></div></div>
     <section class="panel">
       <div class="grid">
         <label style="grid-column: 1 / -1;">Auth Code<input id="authCode" type="password"></label>
@@ -1077,6 +1090,7 @@ function htmlResponse(html) {
 function textResponse(text, status) {
   return new Response(text, { status })
 }
+
 
 
 
