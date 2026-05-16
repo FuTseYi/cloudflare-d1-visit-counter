@@ -10,7 +10,8 @@ const ENABLE_ALLOWLIST = false
 const ALLOWED_PATHS = []
 const DEFAULT_HISTORY_DAYS = 30
 const MAX_HISTORY_DAYS = 365
-
+const FAVICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#0969DA"/><rect x="12" y="18" width="40" height="28" rx="7" fill="#FFFFFF" opacity=".96"/><circle cx="25" cy="33" r="4" fill="#2ECC71"/><circle cx="36" cy="27" r="4" fill="#58A6FF"/><circle cx="46" cy="23" r="4" fill="#FFB6C1"/><path d="M25 33l11-6 10-4" fill="none" stroke="#24292F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+const FAVICON_HREF = `data:image/svg+xml,${encodeURIComponent(FAVICON_SVG)}`
 const namedColors = {
   brightgreen: '#4c1',
   green: '#97ca00',
@@ -562,6 +563,7 @@ function renderGeneratorPage() {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Cloudflare D1 Visit Counter</title>
+  <link rel="icon" type="image/svg+xml" href="${FAVICON_HREF}">
   <style>
     :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     body { margin: 0; background: #f6f8fa; color: #24292f; }
@@ -669,16 +671,16 @@ function renderGeneratorPage() {
         <div class="preview"><img id="badgePreview" alt=""><a id="statusLink" href="#" target="_blank" rel="noopener noreferrer" style="display:none; margin-left:12px; color:#0969da; font-weight:700;">Open status page</a></div>
       </div>
     </section>
+    <section class="panel">      <p>Markdown (badge only)</p><div class="output-row"><code id="markdownCode" class="empty">Create a counter first.</code><button class="copy-btn" data-copy="markdownCode">Copy</button></div>
+      <p>Markdown (with status)</p><div class="output-row"><code id="markdownLinkCode" class="empty">Create a counter first.</code><button class="copy-btn" data-copy="markdownLinkCode">Copy</button></div>
+      <p>HTML (with status)</p><div class="output-row"><code id="htmlCode" class="empty">Create a counter first.</code><button class="copy-btn" data-copy="htmlCode">Copy</button></div>
+      <p>Image URL (badge only)</p><div class="output-row"><code id="imageUrlCode" class="empty">Create a counter first.</code><button class="copy-btn" data-copy="imageUrlCode">Copy</button></div><p>Status page (status only)</p><div class="output-row"><code id="statusUrlCode" class="empty">Create a counter first.</code><button class="copy-btn" data-copy="statusUrlCode">Copy</button></div>
+    </section>
     <section class="panel">
       <h2>Created Counters</h2>
       <p class="hint">Load requires Auth Code. Deleting a counter removes its badge data and status chart data.</p>
       <div class="counter-toolbar"><button id="selectAllCounters" class="secondary-btn" type="button">Select All</button><button id="deleteSelectedCounters" class="danger-btn" type="button">Delete Selected</button></div>
       <div id="counterList" class="counter-list"><span class="empty">No counters loaded.</span></div>
-    </section>
-    <section class="panel">      <p>Markdown (badge only)</p><div class="output-row"><code id="markdownCode" class="empty">Create a counter first.</code><button class="copy-btn" data-copy="markdownCode">Copy</button></div>
-      <p>Markdown (with status)</p><div class="output-row"><code id="markdownLinkCode" class="empty">Create a counter first.</code><button class="copy-btn" data-copy="markdownLinkCode">Copy</button></div>
-      <p>HTML (with status)</p><div class="output-row"><code id="htmlCode" class="empty">Create a counter first.</code><button class="copy-btn" data-copy="htmlCode">Copy</button></div>
-      <p>Image URL (badge only)</p><div class="output-row"><code id="imageUrlCode" class="empty">Create a counter first.</code><button class="copy-btn" data-copy="imageUrlCode">Copy</button></div><p>Status page (status only)</p><div class="output-row"><code id="statusUrlCode" class="empty">Create a counter first.</code><button class="copy-btn" data-copy="statusUrlCode">Copy</button></div>
     </section>
   </main>
   <script>
@@ -980,6 +982,7 @@ function renderStatusPage({ counter = '', total = 0, daily = 0, series = [], err
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${safeCounter} status</title>
+  <link rel="icon" type="image/svg+xml" href="${FAVICON_HREF}">
   <style>
     :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     body { margin: 0; background: #f6f8fa; color: #24292f; }
@@ -1131,6 +1134,10 @@ function htmlResponse(html) {
 function textResponse(text, status) {
   return new Response(text, { status })
 }
+
+
+
+
 
 
 
