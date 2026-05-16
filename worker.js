@@ -577,10 +577,11 @@ function renderGeneratorPage() {
     body { margin: 0; background: #f6f8fa; color: #24292f; }
     main { max-width: 1120px; margin: 0 auto; padding: 36px 18px 56px; }
     h1 { margin: 0 0 8px; font-size: 32px; letter-spacing: 0; }
-    .product-head { margin-bottom: 18px; text-align: center; }
-    .powered-line { color: #57606a; font-size: 14px; }
-    .powered-line a { color: #0969da; font-weight: 750; text-decoration: none; }
-    .powered-line a:hover { text-decoration: underline; }
+    .product-head { margin-bottom: 28px; padding-top: 6px; text-align: center; }
+    .powered-title { color: #24292f; font-size: clamp(36px, 5vw, 52px); font-weight: 850; letter-spacing: 0; line-height: 1.12; }
+    .powered-title a { color: #0969da; text-decoration: none; }
+    .powered-title a:hover { text-decoration: underline; }
+    .powered-prefix { color: #24292f; font-weight: 650; }
     p { color: #57606a; line-height: 1.65; }
     .panel { background: #fff; border: 1px solid #d0d7de; border-radius: 8px; padding: 20px; margin-top: 18px; }
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
@@ -625,7 +626,7 @@ function renderGeneratorPage() {
     .palette { display: grid; grid-template-columns: repeat(6, 22px); gap: 9px; padding: 10px 0; }
     .swatch { width: 22px; height: 22px; min-height: 22px; border: 0; border-radius: 4px; padding: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); }
     .hex-input { width: 100%; box-sizing: border-box; min-height: 30px; font-size: 12px; }
-    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } .powered-title { font-size: 26px; } .counter-item { grid-template-columns: auto minmax(0, 1fr); } .counter-item button { width: 100%; } .field-title { align-items: flex-start; flex-direction: column; gap: 2px; } .field-note { text-align: left; } }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } .powered-title { font-size: 32px; } .counter-item { grid-template-columns: auto minmax(0, 1fr); } .counter-item button { width: 100%; } .field-title { align-items: flex-start; flex-direction: column; gap: 2px; } .field-note { text-align: left; } }
   </style>
 </head>
 <body>
@@ -1140,6 +1141,8 @@ function htmlResponse(html) {
 function textResponse(text, status) {
   return new Response(text, { status })
 }
+
+
 
 
 
