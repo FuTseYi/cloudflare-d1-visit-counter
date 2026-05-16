@@ -10,6 +10,7 @@ const ENABLE_ALLOWLIST = false
 const ALLOWED_PATHS = []
 const DEFAULT_HISTORY_DAYS = 30
 const MAX_HISTORY_DAYS = 365
+const DAILY_RETENTION_DAYS = 30
 const FAVICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#0969DA"/><rect x="12" y="18" width="40" height="28" rx="7" fill="#FFFFFF" opacity=".96"/><circle cx="25" cy="33" r="4" fill="#2ECC71"/><circle cx="36" cy="27" r="4" fill="#58A6FF"/><circle cx="46" cy="23" r="4" fill="#FFB6C1"/><path d="M25 33l11-6 10-4" fill="none" stroke="#24292F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 const FAVICON_HREF = `data:image/svg+xml,${encodeURIComponent(FAVICON_SVG)}`
 const namedColors = {
@@ -238,6 +239,7 @@ async function handleCounterRequest(url, db, counter, isSvg) {
     total = await incrementExistingCounter(db, totalKey)
     if (total === null) return textResponse('Counter not found', 404)
     daily = await incrementCounter(db, dailyKey)
+    await cleanupOldDailyData(db, counter, today)
   } else {
     total = await getCounterValue(db, totalKey)
     if (total === null) return textResponse('Counter not found', 404)
@@ -283,6 +285,7 @@ async function handleVisitorBadge(url, db) {
     return textResponse('Counter not found', 404)
   }
   const daily = await incrementCounter(db, `${counter}:daily:${today}`)
+  await cleanupOldDailyData(db, counter, today)
 
   return svgResponse(generateBadgeSvg({
     title: getParam(url, 'label', 'title') || 'Visitors',
@@ -411,6 +414,27 @@ async function incrementCounter(db, key) {
   return Number(results[0].count)
 }
 
+async function cleanupOldDailyData(db, counter, today) {
+  const todayNumber = Number(today.replace(/-/g, ''))
+  const cleanupKey = `${counter}:meta:cleanup`
+  const lastCleanup = await getCounter(db, cleanupKey)
+  if (lastCleanup >= todayNumber) return
+
+  const cutoff = offsetDateString(-DAILY_RETENTION_DAYS + 1)
+  const dailyPrefix = `${counter}:daily:`
+  await db.prepare(`
+    DELETE FROM counters
+    WHERE substr(name, 1, ?) = ?
+      AND substr(name, ?) < ?
+  `).bind(dailyPrefix.length, dailyPrefix, dailyPrefix.length + 1, cutoff).run()
+
+  await db.prepare(`
+    INSERT INTO counters (name, count)
+    VALUES (?, ?)
+    ON CONFLICT(name)
+    DO UPDATE SET count = excluded.count
+  `).bind(cleanupKey, todayNumber).run()
+}
 async function getDailySeries(db, counter, days) {
   const dates = recentDates(days)
   const first = dates[0]
@@ -1143,4 +1167,6 @@ function htmlResponse(html) {
 function textResponse(text, status) {
   return new Response(text, { status })
 }
+
+
 
