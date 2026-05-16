@@ -593,18 +593,25 @@ function renderGeneratorPage() {
     .danger-btn { background: #cf222e; }
     .secondary-btn { background: #57606a; }
     .counter-list { display: grid; gap: 8px; margin-top: 10px; }
-    .counter-item { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; border: 1px solid #d0d7de; border-radius: 6px; padding: 10px; background: #f6f8fa; }
+    .counter-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .counter-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 8px; align-items: center; border: 1px solid #d0d7de; border-radius: 6px; padding: 10px; background: #f6f8fa; }
     .counter-name { overflow-wrap: anywhere; font-weight: 700; }
     .counter-total { color: #57606a; font-size: 12px; margin-top: 6px; }
     .saved-badge { display: inline-flex; align-items: center; min-height: 20px; border-radius: 3px; overflow: hidden; font-family: Verdana,Geneva,DejaVu Sans,sans-serif; font-size: 11px; line-height: 1; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
     .saved-badge-label { background: #A4D3EE; color: #24292f; padding: 5px 7px; font-weight: 700; }
     .saved-badge-count { background: #555555; color: #fff; padding: 5px 7px; }
+    .saved-badge-flat-square, .saved-badge-for-the-badge { border-radius: 0; }
+    .saved-badge-for-the-badge { min-height: 28px; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+    .saved-badge-for-the-badge .saved-badge-label, .saved-badge-for-the-badge .saved-badge-count { padding: 8px 9px; }
+    .saved-badge-social { background: #fff; border: 1px solid #d0d7de; box-shadow: none; }
     .status-preview { margin-top: 12px; border: 1px dashed #d0d7de; border-radius: 8px; background: #f6f8fa; padding: 14px; }
     .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .stat { background: #fff; border: 1px solid #d0d7de; border-radius: 6px; padding: 10px; }
     .stat strong { display: block; font-size: 22px; }
     .stat span { color: #57606a; font-size: 12px; }
     label { display: grid; gap: 6px; font-size: 13px; font-weight: 650; }
+    .field-title { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+    .field-note { color: #57606a; font-size: 12px; font-weight: 500; text-align: right; }
     input, select { min-height: 38px; border: 1px solid #d0d7de; border-radius: 6px; padding: 0 10px; font: inherit; }
     button { min-height: 40px; border: 0; border-radius: 6px; background: #0969da; color: #fff; font-weight: 700; padding: 0 14px; cursor: pointer; }
     code { display: block; overflow-wrap: anywhere; background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 10px; color: #24292f; }
@@ -625,16 +632,16 @@ function renderGeneratorPage() {
     .palette { display: grid; grid-template-columns: repeat(6, 22px); gap: 9px; padding: 10px 0; }
     .swatch { width: 22px; height: 22px; min-height: 22px; border: 0; border-radius: 4px; padding: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); }
     .hex-input { width: 100%; box-sizing: border-box; min-height: 30px; font-size: 12px; }
-    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } .repo-title { font-size: 28px; } }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } .counter-item { grid-template-columns: auto minmax(0, 1fr); } .counter-item button { width: 100%; } .field-title { align-items: flex-start; flex-direction: column; gap: 2px; } .field-note { text-align: left; } }
   </style>
 </head>
 <body>
   <main>
-    <header class="product-head"><a class="repo-title" href="https://github.com/FuTseYi/cloudflare-d1-visit-counter" target="_blank" rel="noopener noreferrer">cloudflare-d1-visit-counter</a><p>Open-source visitor badge and status chart generator powered by Cloudflare Workers and D1.</p><div class="author-line">Author: <a href="https://github.com/FuTseYi" target="_blank" rel="noopener noreferrer">FuTseYi</a></div></header>
+    <header class="product-head"><div class="powered-line">Powered by <a href="https://workers.cloudflare.com/" target="_blank" rel="noopener noreferrer">Cloudflare Workers</a> and <a href="https://developers.cloudflare.com/d1/" target="_blank" rel="noopener noreferrer">D1</a>.</div></header>
     <section class="panel">
       <div class="grid">
         <label style="grid-column: 1 / -1;">Auth Code<input id="authCode" type="password"></label>
-        <label>URL <span class="hint">(or custom public key)</span><input id="source"></label>
+        <label><span class="field-title"><span>URL</span><span class="field-note">Custom public key is also supported</span></span><input id="source"></label>
         <label>Badge Label<input id="label"></label>
         <div class="color-row">
         <div class="color-field" data-color-field="labelColor">
@@ -788,6 +795,11 @@ function renderGeneratorPage() {
       for (const item of counters) {
         const row = document.createElement('div')
         row.className = 'counter-item'
+        const checkbox = document.createElement('input')
+        checkbox.type = 'checkbox'
+        checkbox.className = 'counter-select'
+        checkbox.value = item.counter
+        checkbox.setAttribute('aria-label', 'Select counter ' + item.counter)
         const info = document.createElement('div')
         const name = document.createElement('div')
         name.className = 'counter-name'
@@ -816,7 +828,11 @@ function renderGeneratorPage() {
         useButton.addEventListener('click', () => {
           createdCounter = item.counter
           $('source').value = item.counter
-          $('label').value = item.label || ''
+          $('label').value = config.label || ''
+          $('style').value = config.style || 'flat'
+          $('labelStyle').value = config.labelStyle || 'none'
+          setPickerColor('labelColor', config.labelColor || '#A4D3EE')
+          setPickerColor('countColor', config.countColor || '#555555')
           updateOutputs(item.counter)
         })
         const deleteButton = document.createElement('button')
@@ -843,11 +859,39 @@ function renderGeneratorPage() {
           if (createdCounter === item.counter) createdCounter = ''
           await loadCounters()
         })
-        row.append(info, useButton, deleteButton)
+        row.append(checkbox, info, useButton, deleteButton)
         list.appendChild(row)
       }
     }
-    async function loadCounters() {
+    function selectedCounters() {
+      return Array.from(document.querySelectorAll('.counter-select:checked')).map(input => input.value)
+    }
+    async function deleteCounters(counters) {
+      if (!counters.length) {
+        alert('Select at least one counter')
+        return
+      }
+      if (!confirm('Delete selected counter data and status charts?')) return
+      const authCode = $('authCode').value.trim()
+      if (!authCode) {
+        alert('Auth code is required')
+        return
+      }
+      for (const counter of counters) {
+        const res = await fetch('/api/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ counter, authCode })
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          alert(data.error || 'Delete failed')
+          return
+        }
+        if (createdCounter === counter) createdCounter = ''
+      }
+      await loadCounters()
+    }    async function loadCounters() {
       const authCode = $('authCode').value.trim()
       if (!authCode) {
         alert('Auth code is required')
@@ -982,8 +1026,6 @@ function renderStatusPage({ counter = '', total = 0, daily = 0, series = [], err
     .value { font-size: 36px; font-weight: 850; line-height: 1; }
     .label { margin-top: 8px; color: #57606a; font-size: 13px; }
     .chart-wrap { overflow-x: auto; }
-    .footer-note { margin-top: 18px; color: #6e7781; font-size: 13px; text-align: center; }
-    .footer-note a { color: #0969da; font-weight: 700; text-decoration: none; }
     .error { color: #b42318; font-weight: 700; }
     @media (max-width: 720px) { .stats { grid-template-columns: 1fr; } }
   </style>
@@ -1114,6 +1156,9 @@ function htmlResponse(html) {
 function textResponse(text, status) {
   return new Response(text, { status })
 }
+
+
+
 
 
 

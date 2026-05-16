@@ -2,7 +2,7 @@
 
 Open-source Cloudflare Workers + D1 visitor badge and status chart service.
 
-Project: `cloudflare-d1-visit-counter`
+Project: [cloudflare-d1-visit-counter](https://github.com/FuTseYi/cloudflare-d1-visit-counter)
 
 Author: [FuTseYi](https://github.com/FuTseYi)
 
@@ -63,7 +63,7 @@ Inputs:
 
 The `path` / URL key is public and directly identifies the badge data and status page, following the original hits counter model. You can use a full URL, page name, repository path, or Chinese key.
 
-Created counters can be listed and deleted from the dashboard. The list shows the public counter key, saved badge label, and total visits. List/delete/create all require `AUTH_CODE`; public badge/status URLs do not.
+Created counters can be listed and deleted from the dashboard. The list shows the public counter key, saved badge appearance, and visit totals. List/delete/create all require `AUTH_CODE`; public badge/status URLs do not.
 
 ## Visitorbadge-compatible image URL
 
@@ -119,6 +119,7 @@ curl -X POST https://your.domain.com/api/delete \
 | `labelStyle` | `none` or `default`             |
 
 Compatible aliases are still accepted: `title`, `title_bg`, `count_bg`, and `counter`.
+
 
 
 
