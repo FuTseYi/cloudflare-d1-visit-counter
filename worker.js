@@ -167,7 +167,7 @@ async function handleListCounters(request, db) {
     counters.push({
       counter,
       config: await getCounterConfig(db, counter),
-      daily: await getCounter(db, ${counter}:daily:),
+      daily: await getCounter(db, `${counter}:daily:${todayString()}`),
       total: Number(row.count) || 0,
     })
   }
@@ -879,7 +879,7 @@ function renderGeneratorPage() {
       const res = await fetch('/api/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ counter, authCode, label: label.value.trim(), labelColor: labelColor.value, countColor: countColor.value, style: style.value, labelStyle: labelStyle.value })
+        body: JSON.stringify({ counter, authCode, label: $('label').value.trim(), labelColor: $('labelColor').value, countColor: $('countColor').value, style: $('style').value, labelStyle: $('labelStyle').value })
       })
       const data = await res.json()
       if (!res.ok && !data.exists) {
@@ -1114,6 +1114,7 @@ function htmlResponse(html) {
 function textResponse(text, status) {
   return new Response(text, { status })
 }
+
 
 
 
