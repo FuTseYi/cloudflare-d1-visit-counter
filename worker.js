@@ -13,6 +13,7 @@ const MAX_HISTORY_DAYS = 365
 const DAILY_RETENTION_DAYS = 30
 const FAVICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M14 46H50" fill="none" stroke="#24292F" stroke-width="4" stroke-linecap="round"/><path d="M16 40L28 31L37 34L50 19" fill="none" stroke="#24292F" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><text x="50" y="58" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="2.2" font-weight="600" fill="#24292F" opacity=".16">FuTseYi</text></svg>'
 const FAVICON_HREF = `data:image/svg+xml,${encodeURIComponent(FAVICON_SVG)}`
+const PROJECT_LOGO_SVG = FAVICON_SVG.replace('<svg ', '<svg class="project-logo" aria-hidden="true" ')
 const namedColors = {
   brightgreen: '#4c1',
   green: '#97ca00',
@@ -454,9 +455,8 @@ async function cleanupOldDailyData(db, counter, today) {
   `).bind(cleanupKey, todayNumber).run()
 }
 async function getDailySeries(db, counter, days) {
-  const dates = recentDates(days)
-  const first = dates[0]
-  const last = dates[dates.length - 1]
+  const today = todayString()
+  const cutoff = offsetDateString(-days + 1)
   const prefix = `${counter}:daily:`
   const { results } = await db.prepare(`
     SELECT name, count
@@ -464,14 +464,19 @@ async function getDailySeries(db, counter, days) {
     WHERE substr(name, 1, ?) = ?
       AND substr(name, ?) BETWEEN ? AND ?
     ORDER BY name ASC
-  `).bind(prefix.length, prefix, prefix.length + 1, first, last).all()
+  `).bind(prefix.length, prefix, prefix.length + 1, cutoff, today).all()
+
+  if (!results.length) {
+    return [{ date: today, count: 0 }]
+  }
 
   const countByDate = new Map()
   for (const row of results) {
     countByDate.set(String(row.name).slice(prefix.length), Number(row.count) || 0)
   }
 
-  return dates.map(date => ({
+  const firstDate = String(results[0].name).slice(prefix.length)
+  return dateRange(firstDate, today).map(date => ({
     date,
     count: countByDate.get(date) || 0,
   }))
@@ -548,6 +553,12 @@ function generateHistorySvg({ title, series, width, height, chartType, color }) 
   const tickInterval = Math.max(1, Math.ceil(series.length / 12))
   const safeTitle = escapeXml(title.slice(0, 80))
   const total = series.reduce((sum, item) => sum + item.count, 0)
+  const counts = series.map(item => item.count)
+  const highest = counts.length ? Math.max(...counts) : 0
+  const lowest = counts.length ? Math.min(...counts) : 0
+  const average = counts.length ? total / counts.length : 0
+  const averageText = Number.isInteger(average) ? String(average) : average.toFixed(1)
+  const summaryText = escapeXml(`Total: ${total} · High: ${highest} · Low: ${lowest} · Avg: ${averageText}`)
   const points = series.map((item, index) => {
     const x = padding.left + index * pointStep
     const y = padding.top + chartHeight - (item.count / maxCount) * chartHeight
@@ -599,7 +610,7 @@ function generateHistorySvg({ title, series, width, height, chartType, color }) 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" role="img" aria-label="${safeTitle}">
   <rect width="100%" height="100%" fill="#fff"/>
   <text x="${width / 2}" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="18" font-weight="700" fill="#24292f">${safeTitle}</text>
-  <text x="${width / 2}" y="47" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#57606a">Total in range: ${total}</text>
+  <text x="${width / 2}" y="47" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#57606a">${summaryText}</text>
   ${yMarks}
   <line x1="${padding.left}" y1="${padding.top}" x2="${padding.left}" y2="${padding.top + chartHeight}" stroke="#8c959f"/>
   <line x1="${padding.left}" y1="${padding.top + chartHeight}" x2="${padding.left + chartWidth}" y2="${padding.top + chartHeight}" stroke="#8c959f"/>
@@ -621,6 +632,8 @@ function renderGeneratorPage() {
     main { max-width: 1120px; margin: 0 auto; padding: 36px 18px 56px; }
     h1 { margin: 0 0 8px; font-size: 32px; letter-spacing: 0; }
     .product-head { margin-bottom: 28px; padding-top: 6px; text-align: center; }
+    .brand-title-row { display: inline-flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
+    .project-logo { width: 54px; height: 54px; flex: 0 0 auto; display: block; }
     .powered-title { color: #24292f; font-size: clamp(36px, 5vw, 52px); font-weight: 850; letter-spacing: 0; line-height: 1.12; }
     .powered-title a { color: #0969da; text-decoration: none; }
     .powered-title a:hover { text-decoration: underline; }
@@ -678,10 +691,10 @@ function renderGeneratorPage() {
 <body>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <main>
-    <header class="product-head"><div class="powered-title"><span class="powered-prefix">Powered by</span> <a href="https://github.com/FuTseYi/cloudflare-d1-visit-counter" target="_blank" rel="noopener noreferrer">cloudflare-d1-visit-counter</a></div></header>
+    <header class="product-head"><div class="brand-title-row">${PROJECT_LOGO_SVG}<div class="powered-title"><span class="powered-prefix">Powered by</span> <a href="https://github.com/FuTseYi/cloudflare-d1-visit-counter" target="_blank" rel="noopener noreferrer">cloudflare-d1-visit-counter</a></div></div></header>
     <section class="panel">
       <div class="grid">
-        <label style="grid-column: 1 / -1;">Auth Code<input id="authCode" type="password" placeholder="Enter auth code to unlock create, load, and delete"></label>
+        <label style="grid-column: 1 / -1;">Auth Code<input id="authCode" type="password" placeholder="Deploy your own Worker and configure AUTH_CODE in worker.js to unlock all features"></label>
         <label><span class="field-title"><span>URL</span><span class="field-note">Custom public key is also supported</span></span><input id="source"></label>
         <label><span class="field-title"><span>Badge Label</span><span class="field-note"></span></span><input id="label"></label>
         <div class="color-row">
@@ -1037,6 +1050,12 @@ function getParam(url, ...names) {
 
 function renderStatusPage({ counter = '', total = 0, daily = 0, series = [], error = '' }) {
   const safeCounter = escapeXml(counter || 'status')
+  const counts = series.map(item => item.count)
+  const highest = counts.length ? Math.max(...counts) : 0
+  const lowest = counts.length ? Math.min(...counts) : 0
+  const rangeTotal = counts.reduce((sum, count) => sum + count, 0)
+  const average = counts.length ? rangeTotal / counts.length : 0
+  const averageText = Number.isInteger(average) ? String(average) : average.toFixed(1)
   const chart = error ? '' : generateHistorySvg({
     title: 'Visit Trend',
     series,
@@ -1058,6 +1077,8 @@ function renderStatusPage({ counter = '', total = 0, daily = 0, series = [], err
     body { margin: 0; background: #f6f8fa; color: #24292f; }
     main { max-width: 1080px; margin: 0 auto; padding: 42px 18px 44px; }
     .topline { text-align: center; margin-bottom: 26px; }
+    .status-title-row { display: inline-flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+    .project-logo { width: 48px; height: 48px; flex: 0 0 auto; display: block; }
     .project-line { margin-top: 12px; color: #57606a; font-size: 14px; }
     .project-line strong { color: #24292f; }
     .project-line a { color: #0969da; font-weight: 750; text-decoration: none; }
@@ -1080,7 +1101,7 @@ function renderStatusPage({ counter = '', total = 0, daily = 0, series = [], err
 </head>
 <body>
   <main>
-    ${error ? `<section class="panel error">${escapeXml(error)}</section>` : `<section class="topline"><h1>Analytics Overview</h1><p class="overview">Overview for</p><div class="target-key">${safeCounter}</div><div class="project-line">Powered by <a class="project-link" href="https://github.com/FuTseYi/cloudflare-d1-visit-counter" target="_blank" rel="noopener noreferrer">cloudflare-d1-visit-counter</a> · Author: <a class="project-link" href="https://github.com/FuTseYi" target="_blank" rel="noopener noreferrer">FuTseYi</a></div></section><section class="center"><p class="sub">Comprehensive statistics for the last 30 days · Last generated: ${updatedAt}</p></section><section class="panel stats"><div class="stat"><div class="value">${daily}</div><div class="label">Today</div></div><div class="stat"><div class="value">${total}</div><div class="label">Total visits</div></div><div class="stat"><div class="value">30</div><div class="label">Days in chart</div></div></section><section class="panel"><div class="chart-wrap">${chart}</div></section>`}
+    ${error ? `<section class="panel error">${escapeXml(error)}</section>` : `<section class="topline"><div class="status-title-row">${PROJECT_LOGO_SVG}<h1>Analytics Overview</h1></div><p class="overview">Overview for</p><div class="target-key">${safeCounter}</div><div class="project-line">Powered by <a class="project-link" href="https://github.com/FuTseYi/cloudflare-d1-visit-counter" target="_blank" rel="noopener noreferrer">cloudflare-d1-visit-counter</a> · Author: <a class="project-link" href="https://github.com/FuTseYi" target="_blank" rel="noopener noreferrer">FuTseYi</a></div></section><section class="center"><p class="sub">Statistics for available daily data, up to 30 days · Last generated: ${updatedAt}</p></section><section class="panel stats"><div class="stat"><div class="value">${daily}</div><div class="label">Today</div></div><div class="stat"><div class="value">${total}</div><div class="label">Total visits</div></div><div class="stat"><div class="value">${series.length}</div><div class="label">Days in chart</div></div><div class="stat"><div class="value">${highest}</div><div class="label">Highest daily</div></div><div class="stat"><div class="value">${lowest}</div><div class="label">Lowest daily</div></div><div class="stat"><div class="value">${averageText}</div><div class="label">Average daily</div></div></section><section class="panel"><div class="chart-wrap">${chart}</div></section>`}
   </main>
 </body>
 </html>`
@@ -1141,6 +1162,17 @@ function recentDates(days) {
   return dates
 }
 
+
+function dateRange(firstDate, lastDate) {
+  const dates = []
+  const cursor = new Date(`${firstDate}T00:00:00.000Z`)
+  const end = new Date(`${lastDate}T00:00:00.000Z`)
+  while (cursor <= end) {
+    dates.push(cursor.toISOString().slice(0, 10))
+    cursor.setUTCDate(cursor.getUTCDate() + 1)
+  }
+  return dates
+}
 function todayString() {
   return offsetDateString(0)
 }
@@ -1204,20 +1236,5 @@ function htmlResponse(html) {
 function textResponse(text, status) {
   return new Response(text, { status })
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

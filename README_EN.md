@@ -1,5 +1,9 @@
 ﻿# cloudflare-d1-visit-counter
 
+<p align="center">
+  <img src="docs/images/logo.svg" width="72" alt="cloudflare-d1-visit-counter logo" />
+</p>
+
 [中文说明](README.md) | English
 
 **cloudflare-d1-visit-counter** is an open-source, self-hosted, low-cost visitor counter powered by **Cloudflare Workers + Cloudflare D1**. It generates SVG visitor badges for GitHub README files, personal websites, blogs, documentation sites, and project pages, with a dashboard, public status pages, and history charts.

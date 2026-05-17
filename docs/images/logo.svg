@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <path d="M14 46H50" fill="none" stroke="#24292F" stroke-width="4" stroke-linecap="round"/>
+  <path d="M16 40L28 31L37 34L50 19" fill="none" stroke="#24292F" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="50" y="58" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="2.2" font-weight="600" fill="#24292F" opacity=".16">FuTseYi</text>
+</svg>

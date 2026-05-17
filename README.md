@@ -1,5 +1,9 @@
 ﻿# cloudflare-d1-visit-counter
 
+<p align="center">
+  <img src="docs/images/logo.svg" width="72" alt="cloudflare-d1-visit-counter logo" />
+</p>
+
 <p>
   <a href="https://github.com/FuTseYi/cloudflare-d1-visit-counter"><img src="https://img.shields.io/badge/project-cloudflare--d1--visit--counter-0969DA" alt="project" /></a>
   <img src="https://img.shields.io/badge/runtime-Cloudflare%20Workers-F38020" alt="Cloudflare Workers" />
