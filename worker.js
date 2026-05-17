@@ -260,13 +260,14 @@ async function handleCounterRequest(url, db, counter, isSvg) {
   }
 
   if (isSvg) {
+    const badgeConfig = await resolveBadgeConfig(db, counter, url)
     return svgResponse(generateBadgeSvg({
-      title: getParam(url, 'label', 'title') || 'Hits',
-      titleBg: getParam(url, 'labelColor', 'title_bg') || 'grey',
-      countBg: getParam(url, 'countColor', 'count_bg') || 'green',
+      title: badgeConfig.label || 'Hits',
+      titleBg: badgeConfig.labelColor,
+      countBg: badgeConfig.countColor,
       edgeFlat: url.searchParams.get('edge_flat') === 'true',
-      style: url.searchParams.get('style') || 'flat',
-      labelStyle: url.searchParams.get('labelStyle') || 'default',
+      style: badgeConfig.style,
+      labelStyle: badgeConfig.labelStyle,
       dailyCount: daily,
       totalCount: total,
     }))
@@ -313,14 +314,15 @@ async function handleVisitorBadge(url, db) {
   }
   const daily = await incrementCounter(db, `${counter}:daily:${today}`)
   if (daily === 1) await cleanupOldDailyData(db, counter, today)
+  const badgeConfig = await resolveBadgeConfig(db, counter, url)
 
   return svgResponse(generateBadgeSvg({
-    title: getParam(url, 'label', 'title') || 'Visitors',
-    titleBg: getParam(url, 'labelColor', 'title_bg') || 'grey',
-    countBg: getParam(url, 'countColor', 'count_bg') || 'green',
+    title: badgeConfig.label || 'Visitors',
+    titleBg: badgeConfig.labelColor,
+    countBg: badgeConfig.countColor,
     edgeFlat: url.searchParams.get('edge_flat') === 'true',
-    style: url.searchParams.get('style') || 'flat',
-    labelStyle: url.searchParams.get('labelStyle') || 'default',
+    style: badgeConfig.style,
+    labelStyle: badgeConfig.labelStyle,
     dailyCount: daily,
     totalCount: total,
   }))
@@ -412,6 +414,17 @@ async function getCounterConfig(db, counter) {
   } catch {
     return normalizeBadgeConfig({})
   }
+}
+
+async function resolveBadgeConfig(db, counter, url) {
+  const saved = await getCounterConfig(db, counter)
+  return normalizeBadgeConfig({
+    label: getParam(url, 'label', 'title') || saved.label,
+    labelColor: getParam(url, 'labelColor', 'title_bg') || saved.labelColor,
+    countColor: getParam(url, 'countColor', 'count_bg') || saved.countColor,
+    style: url.searchParams.get('style') || saved.style,
+    labelStyle: url.searchParams.get('labelStyle') || saved.labelStyle,
+  })
 }
 
 async function getLegacyCounterLabel(db, counter) {
@@ -688,6 +701,12 @@ function renderGeneratorPage() {
     button { min-height: 40px; border: 0; border-radius: 6px; background: #0969da; color: #fff; font-weight: 700; padding: 0 14px; cursor: pointer; }
     code { display: block; overflow-wrap: anywhere; background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 10px; color: #24292f; }
     .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+    .mode-row { display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .mode-label { color: #57606a; font-size: 12px; font-weight: 700; }
+    .segmented { display: inline-flex; border: 1px solid #d0d7de; border-radius: 6px; overflow: hidden; background: #fff; }
+    .segmented button { min-height: 32px; border-radius: 0; background: #fff; color: #57606a; border-left: 1px solid #d0d7de; padding: 0 10px; }
+    .segmented button:first-child { border-left: 0; }
+    .segmented button.active { background: #0969da; color: #fff; }
     .preview { min-height: 34px; display: flex; align-items: center; }
     .hint { margin: 8px 0 0; font-size: 12px; color: #57606a; }
     .empty { color: #6e7781; font-style: italic; }
@@ -756,7 +775,9 @@ function renderGeneratorPage() {
         <div class="preview"><img id="badgePreview" alt=""><a id="statusLink" href="#" target="_blank" rel="noopener noreferrer" style="display:none; margin-left:12px; color:#0969da; font-weight:700;">Open status page</a></div>
       </div>
     </section>
-    <section class="panel">      <p>Markdown (badge only)</p><div class="output-row"><code id="markdownCode" class="empty">Create a counter first.</code><button class="copy-btn" data-copy="markdownCode">Copy</button></div>
+    <section class="panel">
+      <div class="mode-row"><span class="mode-label">Output style</span><div class="segmented"><button id="savedMode" class="active" type="button">Saved style</button><button id="customMode" type="button">Custom URL</button></div></div>
+      <p>Markdown (badge only)</p><div class="output-row"><code id="markdownCode" class="empty">Create a counter first.</code><button class="copy-btn" data-copy="markdownCode">Copy</button></div>
       <p>Markdown (with status)</p><div class="output-row"><code id="markdownLinkCode" class="empty">Create a counter first.</code><button class="copy-btn" data-copy="markdownLinkCode">Copy</button></div>
       <p>HTML (with status)</p><div class="output-row"><code id="htmlCode" class="empty">Create a counter first.</code><button class="copy-btn" data-copy="htmlCode">Copy</button></div>
       <p>Image URL (badge only)</p><div class="output-row"><code id="imageUrlCode" class="empty">Create a counter first.</code><button class="copy-btn" data-copy="imageUrlCode">Copy</button></div><p>Status page (status only)</p><div class="output-row"><code id="statusUrlCode" class="empty">Create a counter first.</code><button class="copy-btn" data-copy="statusUrlCode">Copy</button></div>
@@ -773,6 +794,7 @@ function renderGeneratorPage() {
     const $ = id => document.getElementById(id)
     let createdCounter = ''
     let currentCounts = { daily: 0, total: 0 }
+    let outputMode = 'saved'
     const paletteColors = ['#D8E3F0', '#F87171', '#64748B', '#2ECC71', '#33C2D8', '#555555', '#E1E95B', '#FF8A65', '#B46AD1', '#A4D3EE', '#FFB6C1', '#FFFFFF']
     function sourceValue() { return $('source').value.trim() }
     function counterValue() { return sourceValue() }
@@ -836,6 +858,12 @@ function renderGeneratorPage() {
     function imageUrl(counter) {
       const params = new URLSearchParams({
         path: counter,
+      })
+      return 'https://' + domain + '/api/combined?' + params.toString()
+    }
+    function customImageUrl(counter) {
+      const params = new URLSearchParams({
+        path: counter,
         label: $('label').value || 'Visitors',
         labelColor: $('labelColor').value || '#A4D3EE',
         countColor: $('countColor').value || '#555555',
@@ -868,7 +896,7 @@ function renderGeneratorPage() {
     function updateOutputs(counter, counts) {
       if (!counter || counter !== createdCounter) return
       if (counts) currentCounts = { daily: Number(counts.daily) || 0, total: Number(counts.total) || 0 }
-      const image = imageUrl(counter)
+      const image = outputMode === 'custom' ? customImageUrl(counter) : imageUrl(counter)
       const status = statusUrl(counter)
       $('badgePreview').src = previewImageUrl(counter, {}, currentCounts)
       setCode('markdownCode', '![' + counter + '](' + image + ')')
@@ -1008,6 +1036,14 @@ function renderGeneratorPage() {
       showToast(data.exists ? 'Counter already exists, links updated' : 'Counter created')
     })
     $('loadCounters').addEventListener('click', () => loadCounters({ notify: true, scroll: true }))
+    function setOutputMode(mode) {
+      outputMode = mode
+      $('savedMode').classList.toggle('active', mode === 'saved')
+      $('customMode').classList.toggle('active', mode === 'custom')
+      updateOutputs(counterValue())
+    }
+    $('savedMode').addEventListener('click', () => setOutputMode('saved'))
+    $('customMode').addEventListener('click', () => setOutputMode('custom'))
     $('selectAllCounters').addEventListener('click', () => {
       const boxes = Array.from(document.querySelectorAll('.counter-select'))
       const shouldSelect = boxes.some(box => !box.checked)

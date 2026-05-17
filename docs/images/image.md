@@ -1,0 +1,9 @@
+docs/images/deploy-01-create-d1-database.png
+docs/images/deploy-02-workers-pages.png
+docs/images/deploy-03-deploy-worker.png
+docs/images/deploy-04-add-binding.png
+docs/images/deploy-05-choose-d1-binding.png
+docs/images/deploy-06-configure-d1-binding.png
+docs/images/deploy-07-binding-result.png
+docs/images/deploy-08-edit-worker-code.png
+docs/images/deploy-09-add-custom-domain.png

@@ -93,13 +93,15 @@ Total visits are permanent until the counter is deleted. Increasing `HISTORY_DAY
 
 ## Examples
 
+The output panel has two modes: `Saved style` generates stable short links and loads style from D1; `Custom URL` generates links with full style parameters for one-off customization. Existing stable embeds automatically use the latest dashboard style.
+
 ```md
-![Visitors](https://your.domain.com/api/combined?path=https%3A%2F%2Fexample.com%2F&label=Visitors&labelColor=%23A4D3EE&countColor=%23555555&style=flat&labelStyle=default)
+![Visitors](https://your.domain.com/api/combined?path=https%3A%2F%2Fexample.com%2F)
 ```
 
 ```html
 <a href="https://your.domain.com/status?path=https%3A%2F%2Fexample.com%2F" target="_blank" rel="noopener noreferrer">
-  <img src="https://your.domain.com/api/combined?path=https%3A%2F%2Fexample.com%2F&label=Visitors&labelColor=%23A4D3EE&countColor=%23555555&style=flat&labelStyle=default" alt="Visitor badge" />
+  <img src="https://your.domain.com/api/combined?path=https%3A%2F%2Fexample.com%2F" alt="Visitor badge" />
 </a>
 ```
 

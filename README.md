@@ -198,19 +198,21 @@ const HISTORY_DAYS = 30
 | Image URL | 纯 SVG 图片地址。 |
 | Status page | 公开统计页地址。 |
 
+输出区支持两种模式：`Saved style` 生成稳定短链接，徽章样式从 D1 读取；`Custom URL` 生成带完整样式参数的链接，适合给某个页面单独美化。以后在看板重新编辑样式，已经嵌入网页的稳定短链接会自动使用新样式。
+
 ## 使用示例
 
 ### Markdown
 
 ```md
-![Visitors](https://your.domain.com/api/combined?path=https%3A%2F%2Fexample.com%2F&label=Visitors&labelColor=%23A4D3EE&countColor=%23555555&style=flat&labelStyle=default)
+![Visitors](https://your.domain.com/api/combined?path=https%3A%2F%2Fexample.com%2F)
 ```
 
 ### HTML
 
 ```html
 <a href="https://your.domain.com/status?path=https%3A%2F%2Fexample.com%2F" target="_blank" rel="noopener noreferrer">
-  <img src="https://your.domain.com/api/combined?path=https%3A%2F%2Fexample.com%2F&label=Visitors&labelColor=%23A4D3EE&countColor=%23555555&style=flat&labelStyle=default" alt="Visitor badge" />
+  <img src="https://your.domain.com/api/combined?path=https%3A%2F%2Fexample.com%2F" alt="Visitor badge" />
 </a>
 ```
 

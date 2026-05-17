@@ -5,19 +5,25 @@ This document describes the public and management APIs for `cloudflare-d1-visit-
 ## Public Badge
 
 ```url
-GET /api/combined?path={counterKey}&label={badgeLabel}&labelColor=%23A4D3EE&countColor=%23555555&style=flat&labelStyle=default
+GET /api/combined?path={counterKey}
 ```
 
-Returns an SVG badge and increments an existing counter.
+Returns an SVG badge and increments an existing counter. By default, badge style is loaded from the saved counter config in D1, so embedded badge links stay stable after you edit the style in the dashboard. The dashboard's `Saved style` mode outputs this short URL.
+
+Optional URL parameters can override the saved style for one embed. The dashboard's `Custom URL` mode outputs this full URL:
+
+```url
+GET /api/combined?path={counterKey}&label={badgeLabel}&labelColor=%23A4D3EE&countColor=%23555555&style=flat&labelStyle=default
+```
 
 | Parameter | Alias | Description |
 | --- | --- | --- |
 | `path` | `counter` | Counter key. Required. |
-| `label` | `title` | Badge label text. |
-| `labelColor` | `title_bg` | Label background color. Hex or Shields-style named color. |
-| `countColor` | `count_bg` | Count background color. Hex or Shields-style named color. |
-| `style` | - | `flat`, `flat-square`, `plastic`, `for-the-badge`, `social`. |
-| `labelStyle` | - | `default` for `today / total`, `none` for `total only`. |
+| `label` | `title` | Optional badge label override. |
+| `labelColor` | `title_bg` | Optional label background override. Hex or Shields-style named color. |
+| `countColor` | `count_bg` | Optional count background override. Hex or Shields-style named color. |
+| `style` | - | Optional style override: `flat`, `flat-square`, `plastic`, `for-the-badge`, `social`. |
+| `labelStyle` | - | Optional type override: `default` for `today / total`, `none` for `total only`. |
 
 ## Status Page
 
