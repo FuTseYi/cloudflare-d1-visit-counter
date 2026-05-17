@@ -100,7 +100,7 @@ cloudflare-d1-visit-counter/
 | 博客 | `https://example.com/blog` | `Visitors` | 博客访问量 |
 | GitHub 仓库 | `FuTseYi/cloudflare-d1-visit-counter` | `Visitors` | 仓库访问量 |
 
-公开 badge URL 只会更新已经存在的 counter。你必须先通过看板或 `/api/create` 创建 counter，这样可以避免别人随便改 URL 就在你的 D1 里创建大量垃圾数据。
+公开 badge URL 只会更新已经存在的 counter。你必须先通过看板或 `/api/create` 创建 counter，这样可以避免别人随便改 URL 就在你的 D1 里创建大量垃圾数据。总计数永久保留；每日趋势数据只保留最近 30 天，用于控制 D1 存储增长。
 
 ## 快速部署
 
@@ -205,3 +205,4 @@ https://your.domain.com/
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+

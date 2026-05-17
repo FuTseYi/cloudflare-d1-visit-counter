@@ -28,6 +28,17 @@ For `/api/combined`, the Worker:
 
 The public badge URL does not create counters automatically. This keeps the D1 database cleaner and reduces accidental write growth.
 
+## Retention Policy
+
+| Data | Retention |
+| --- | --- |
+| `{counter}:total` | Permanent until the counter is manually deleted. |
+| `{counter}:daily:{YYYY-MM-DD}` | Last 30 days only. Older daily rows are cleaned automatically. |
+| `{counter}:meta:config` | Permanent until the counter is manually deleted. |
+| `{counter}:meta:cleanup` | Internal cleanup marker, deleted with the counter. |
+
+Daily cleanup runs at most once per counter per day. It keeps the total count untouched and only removes old daily trend rows.
+
 ## Cost Design
 
 - No external runtime dependencies.
@@ -38,3 +49,4 @@ The public badge URL does not create counters automatically. This keeps the D1 d
 - Public badge hot path performs only the necessary D1 writes.
 
 For high-traffic public badges, compare your expected traffic with current Cloudflare Workers and D1 limits before deployment.
+

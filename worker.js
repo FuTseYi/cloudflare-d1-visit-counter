@@ -196,8 +196,8 @@ async function handleDeleteCounter(request, db) {
   }
 
   const dailyPrefix = `${counter}:daily:`
-  await db.prepare('DELETE FROM counters WHERE name = ? OR name = ? OR name = ? OR substr(name, 1, ?) = ?')
-    .bind(`${counter}:total`, `${counter}:meta:label`, `${counter}:meta:config`, dailyPrefix.length, dailyPrefix)
+  await db.prepare('DELETE FROM counters WHERE name = ? OR name = ? OR name = ? OR name = ? OR substr(name, 1, ?) = ?')
+    .bind(`${counter}:total`, `${counter}:meta:label`, `${counter}:meta:config`, `${counter}:meta:cleanup`, dailyPrefix.length, dailyPrefix)
     .run()
 
   return jsonResponse({ success: true, counter })
@@ -1167,6 +1167,7 @@ function htmlResponse(html) {
 function textResponse(text, status) {
   return new Response(text, { status })
 }
+
 
 
 
