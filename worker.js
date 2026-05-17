@@ -379,6 +379,47 @@ async function handleHistoryChart(url, db, counter) {
   }), 'public, max-age=300')
 }
 
+async function handleMonthlyApi(url, db) {
+  const counter = normalizeCounterName(url.searchParams.get('counter') || url.searchParams.get('path'))
+  if (!counter) {
+    return jsonResponse({ error: 'Missing or invalid path' }, 400)
+  }
+  if (!isCounterAllowed(counter)) {
+    return textResponse('Not Found', 404)
+  }
+
+  const today = todayString()
+  const total = await getCounterValue(db, `${counter}:total`)
+  if (total === null) {
+    return textResponse('Counter not found', 404)
+  }
+
+  const month = today.slice(0, 7)
+  const monthStart = `${month}-01`
+  const dailyPrefix = `${counter}:daily:`
+  const { results } = await db.prepare(`
+    SELECT name, count
+    FROM counters
+    WHERE substr(name, 1, ?) = ?
+      AND substr(name, ?) BETWEEN ? AND ?
+    ORDER BY name ASC
+  `).bind(dailyPrefix.length, dailyPrefix, dailyPrefix.length + 1, monthStart, today).all()
+  const days = results.map(row => ({
+    date: String(row.name).slice(dailyPrefix.length),
+    count: Number(row.count) || 0,
+  }))
+  const monthly = days.reduce((sum, item) => sum + item.count, 0)
+
+  return jsonResponse({
+    counter,
+    month,
+    total,
+    monthly,
+    daily: await getCounter(db, `${counter}:daily:${today}`),
+    days,
+  })
+}
+
 async function counterExists(db, counter) {
   const { results } = await db.prepare('SELECT 1 FROM counters WHERE name = ? LIMIT 1')
     .bind(`${counter}:total`)
@@ -417,13 +458,24 @@ async function getCounterConfig(db, counter) {
 }
 
 async function resolveBadgeConfig(db, counter, url) {
+  const urlConfig = {
+    label: getParam(url, 'label', 'title'),
+    labelColor: getParam(url, 'labelColor', 'title_bg'),
+    countColor: getParam(url, 'countColor', 'count_bg'),
+    style: url.searchParams.get('style') || '',
+    labelStyle: url.searchParams.get('labelStyle') || '',
+  }
+  if (urlConfig.label && urlConfig.labelColor && urlConfig.countColor && urlConfig.style && urlConfig.labelStyle) {
+    return normalizeBadgeConfig(urlConfig)
+  }
+
   const saved = await getCounterConfig(db, counter)
   return normalizeBadgeConfig({
-    label: getParam(url, 'label', 'title') || saved.label,
-    labelColor: getParam(url, 'labelColor', 'title_bg') || saved.labelColor,
-    countColor: getParam(url, 'countColor', 'count_bg') || saved.countColor,
-    style: url.searchParams.get('style') || saved.style,
-    labelStyle: url.searchParams.get('labelStyle') || saved.labelStyle,
+    label: urlConfig.label || saved.label,
+    labelColor: urlConfig.labelColor || saved.labelColor,
+    countColor: urlConfig.countColor || saved.countColor,
+    style: urlConfig.style || saved.style,
+    labelStyle: urlConfig.labelStyle || saved.labelStyle,
   })
 }
 
@@ -1269,6 +1321,7 @@ function jsonResponse(data, status = 200) {
       'Content-Type': 'application/json; charset=utf-8',
       'Access-Control-Allow-Origin': '*',
       'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
     },
   })
 }
@@ -1280,6 +1333,7 @@ function svgResponse(svg, cacheControl = 'no-cache, no-store, must-revalidate, m
       'Cache-Control': cacheControl,
       'Pragma': 'no-cache',
       'Expires': '0',
+      'X-Content-Type-Options': 'nosniff',
     },
   })
 }
@@ -1289,12 +1343,21 @@ function htmlResponse(html) {
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
     },
   })
 }
 
 function textResponse(text, status) {
-  return new Response(text, { status })
+  return new Response(text, {
+    status,
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+    },
+  })
 }
 
 

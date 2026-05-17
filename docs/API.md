@@ -86,3 +86,5 @@ GET /chart.svg?path={counterKey}&days=30&chartType=scatter
 `/history` and `/chart` use `HISTORY_DAYS` as the default and maximum range. Use the query-style endpoints when the counter key is a full URL, repository path, or Chinese text. Total visits remain permanent; daily trend rows are retained only inside the configured history window.
 
 Recommended new integrations should use `/api/combined` and `/status`, because they match the dashboard output.
+
+`/api/monthly` is a read-only compatibility endpoint. It does not increment visits and returns total visits, today's visits, the current month's available daily sum, and retained daily rows for the current month.
