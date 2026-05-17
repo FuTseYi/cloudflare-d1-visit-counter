@@ -1,6 +1,6 @@
 ﻿# Architecture
 
-`cloudflare-d1-visit-counter` is intentionally small: one Cloudflare Worker and one D1 table.
+`Cloudflare-D1-Visit-Counter` is intentionally small: one Cloudflare Worker and one D1 table.
 
 ## Data Model
 

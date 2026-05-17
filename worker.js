@@ -706,7 +706,7 @@ function renderGeneratorPage() {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cloudflare D1 Visit Counter</title>
+  <title>Visit Counter</title>
   <link rel="icon" type="image/svg+xml" href="${FAVICON_HREF}">
   <style>
     :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
@@ -779,7 +779,7 @@ function renderGeneratorPage() {
 <body>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <main>
-    <header class="product-head"><div class="brand-title-row">${PROJECT_LOGO_SVG}<div class="powered-title"><span class="powered-prefix">Powered by</span> <a href="https://github.com/FuTseYi/cloudflare-d1-visit-counter" target="_blank" rel="noopener noreferrer">cloudflare-d1-visit-counter</a></div></div></header>
+    <header class="product-head"><div class="brand-title-row">${PROJECT_LOGO_SVG}<div class="powered-title"><span class="powered-prefix">Powered by</span> <a href="https://github.com/FuTseYi/Cloudflare-D1-Visit-Counter" target="_blank" rel="noopener noreferrer">Cloudflare-D1-Visit-Counter</a></div></div></header>
     <section class="panel">
       <div class="grid">
         <label style="grid-column: 1 / -1;">Auth Code<input id="authCode" type="password" placeholder="Deploy your own Worker and configure AUTH_CODE in worker.js to unlock all features"></label>
@@ -1208,7 +1208,7 @@ function renderStatusPage({ counter = '', total = 0, daily = 0, series = [], err
 </head>
 <body>
   <main>
-    ${error ? `<section class="panel error">${escapeXml(error)}</section>` : `<section class="topline"><div class="status-title-row">${PROJECT_LOGO_SVG}<h1>Analytics Overview</h1></div><p class="overview">Overview for</p><div class="target-key">${safeCounter}</div><div class="project-line">Powered by <a class="project-link" href="https://github.com/FuTseYi/cloudflare-d1-visit-counter" target="_blank" rel="noopener noreferrer">cloudflare-d1-visit-counter</a> · Author: <a class="project-link" href="https://github.com/FuTseYi" target="_blank" rel="noopener noreferrer">FuTseYi</a></div></section><section class="center"><p class="sub">Statistics for available daily data, up to ${historyDays} days · Last generated: ${updatedAt}</p></section><section class="panel stats"><div class="stat"><div class="value">${daily}</div><div class="label">Today</div></div><div class="stat"><div class="value">${total}</div><div class="label">Total visits</div></div><div class="stat"><div class="value">${series.length}</div><div class="label">Days in chart</div></div><div class="stat"><div class="value">${highest}</div><div class="label">Highest daily</div></div><div class="stat"><div class="value">${lowest}</div><div class="label">Lowest daily</div></div><div class="stat"><div class="value">${averageText}</div><div class="label">Average daily</div></div></section><section class="panel"><div class="chart-wrap">${chart}</div></section>`}
+    ${error ? `<section class="panel error">${escapeXml(error)}</section>` : `<section class="topline"><div class="status-title-row">${PROJECT_LOGO_SVG}<h1>Analytics Overview</h1></div><p class="overview">Overview for</p><div class="target-key">${safeCounter}</div><div class="project-line">Powered by <a class="project-link" href="https://github.com/FuTseYi/Cloudflare-D1-Visit-Counter" target="_blank" rel="noopener noreferrer">Cloudflare-D1-Visit-Counter</a> · Author: <a class="project-link" href="https://github.com/FuTseYi" target="_blank" rel="noopener noreferrer">FuTseYi</a></div></section><section class="center"><p class="sub">Statistics for available daily data, up to ${historyDays} days · Last generated: ${updatedAt}</p></section><section class="panel stats"><div class="stat"><div class="value">${daily}</div><div class="label">Today</div></div><div class="stat"><div class="value">${total}</div><div class="label">Total visits</div></div><div class="stat"><div class="value">${series.length}</div><div class="label">Days in chart</div></div><div class="stat"><div class="value">${highest}</div><div class="label">Highest daily</div></div><div class="stat"><div class="value">${lowest}</div><div class="label">Lowest daily</div></div><div class="stat"><div class="value">${averageText}</div><div class="label">Average daily</div></div></section><section class="panel"><div class="chart-wrap">${chart}</div></section>`}
   </main>
 </body>
 </html>`

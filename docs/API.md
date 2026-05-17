@@ -1,6 +1,6 @@
 ﻿# API Reference
 
-This document describes the public and management APIs for `cloudflare-d1-visit-counter`.
+This document describes the public and management APIs for `Cloudflare-D1-Visit-Counter`.
 
 ## Public Badge
 

@@ -1,11 +1,11 @@
-﻿# cloudflare-d1-visit-counter
+﻿# Cloudflare-D1-Visit-Counter
 
 <p align="center">
-  <img src="docs/images/logo.svg" width="72" alt="cloudflare-d1-visit-counter logo" />
+  <img src="docs/images/logo.svg" width="72" alt="Cloudflare-D1-Visit-Counter logo" />
 </p>
 
 <p>
-  <a href="https://github.com/FuTseYi/cloudflare-d1-visit-counter"><img src="https://img.shields.io/badge/project-cloudflare--d1--visit--counter-0969DA" alt="project" /></a>
+  <a href="https://github.com/FuTseYi/Cloudflare-D1-Visit-Counter"><img src="https://img.shields.io/badge/project-Cloudflare--D1--Visit--Counter-0969DA" alt="project" /></a>
   <img src="https://img.shields.io/badge/runtime-Cloudflare%20Workers-F38020" alt="Cloudflare Workers" />
   <img src="https://img.shields.io/badge/database-Cloudflare%20D1-5A67D8" alt="Cloudflare D1" />
   <img src="https://img.shields.io/badge/output-SVG%20Badge-2ECC71" alt="SVG Badge" />
@@ -15,7 +15,7 @@
 
 中文 | [English](README_EN.md)
 
-**cloudflare-d1-visit-counter** 是一个基于 **Cloudflare Workers + Cloudflare D1** 的开源、自托管、低成本访问计数器。它可以为 GitHub README、个人网站、博客、文档站和项目主页生成 SVG 访问徽章，并提供可视化 Dashboard、公开 status page 和 history chart。
+**Cloudflare-D1-Visit-Counter** 是一个基于 **Cloudflare Workers + Cloudflare D1** 的开源、自托管、低成本访问计数器。它可以为 GitHub README、个人网站、博客、文档站和项目主页生成 SVG 访问徽章，并提供可视化 Dashboard、公开 status page 和 history chart。
 
 ## 快速开始
 
@@ -38,14 +38,14 @@
 - [更多文档](#更多文档)
 - [License](#license)
 
-项目地址：[FuTseYi/cloudflare-d1-visit-counter](https://github.com/FuTseYi/cloudflare-d1-visit-counter)  
+项目地址：[FuTseYi/Cloudflare-D1-Visit-Counter](https://github.com/FuTseYi/Cloudflare-D1-Visit-Counter)  
 作者：[FuTseYi](https://github.com/FuTseYi)
 
 ## 为什么做这个项目
 
 市面上的访问徽章项目通常只解决“显示访问量”这一个点，但在自部署、管理、防滥用、状态页、样式保存、低成本运行之间很难同时兼顾。
 
-`cloudflare-d1-visit-counter` 是一个从自托管场景出发设计的全新项目：既能快速生成 Markdown / HTML / Image URL，又能保存徽章样式、管理已创建计数器，并为每个计数器自动提供公开状态页。它强调数据自有、部署简单、权限边界清晰和长期运行成本可控。
+`Cloudflare-D1-Visit-Counter` 是一个从自托管场景出发设计的全新项目：既能快速生成 Markdown / HTML / Image URL，又能保存徽章样式、管理已创建计数器，并为每个计数器自动提供公开状态页。它强调数据自有、部署简单、权限边界清晰和长期运行成本可控。
 
 ## 核心亮点
 
@@ -73,7 +73,7 @@
 ## 项目结构
 
 ```text
-cloudflare-d1-visit-counter/
+Cloudflare-D1-Visit-Counter/
 ├─ worker.js
 ├─ README.md
 ├─ README_EN.md
@@ -102,7 +102,7 @@ cloudflare-d1-visit-counter/
 | --- | --- | --- | --- |
 | 首页 | `https://example.com/` | `Visitors` | 首页访问量 |
 | 博客 | `https://example.com/blog` | `Visitors` | 博客访问量 |
-| GitHub 仓库 | `FuTseYi/cloudflare-d1-visit-counter` | `Visitors` | 仓库访问量 |
+| GitHub 仓库 | `FuTseYi/Cloudflare-D1-Visit-Counter` | `Visitors` | 仓库访问量 |
 
 公开 badge URL 只会更新已经存在的 counter。你必须先通过看板或 `/api/create` 创建 counter，这样可以避免别人随便改 URL 就在你的 D1 里创建大量垃圾数据。总访问量永久保留；每日趋势数据按 `HISTORY_DAYS` 保留，用来控制 D1 存储增长。
 
