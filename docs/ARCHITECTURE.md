@@ -33,11 +33,13 @@ The public badge URL does not create counters automatically. This keeps the D1 d
 | Data | Retention |
 | --- | --- |
 | `{counter}:total` | Permanent until the counter is manually deleted. |
-| `{counter}:daily:{YYYY-MM-DD}` | Last 30 days only. Older daily rows are cleaned automatically. |
+| `{counter}:daily:{YYYY-MM-DD}` | Last `HISTORY_DAYS` days only. Older daily rows are cleaned automatically. |
 | `{counter}:meta:config` | Permanent until the counter is manually deleted. |
 | `{counter}:meta:cleanup` | Internal cleanup marker, deleted with the counter. |
 
-Daily cleanup runs at most once per counter per day. It keeps the total count untouched and only removes old daily trend rows.
+Daily cleanup runs at most once per counter per day for the current `HISTORY_DAYS` value. It keeps the total count untouched and only removes old daily trend rows.
+
+Increasing `HISTORY_DAYS` keeps existing daily rows and lets the retained window grow from that point forward. Decreasing it removes rows outside the new window on the next cleanup. Already deleted daily rows cannot be rebuilt, but `{counter}:total` remains accurate.
 
 ## Cost Design
 
@@ -47,6 +49,7 @@ Daily cleanup runs at most once per counter per day. It keeps the total count un
 - Favicon uses an inline SVG data URL.
 - One compact D1 table.
 - Public badge hot path performs only the necessary D1 writes.
+- Trend storage is bounded by `HISTORY_DAYS`; total storage is one permanent row per counter.
 
 For high-traffic public badges, compare your expected traffic with current Cloudflare Workers and D1 limits before deployment.
 

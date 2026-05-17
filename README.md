@@ -104,7 +104,7 @@ cloudflare-d1-visit-counter/
 | 博客 | `https://example.com/blog` | `Visitors` | 博客访问量 |
 | GitHub 仓库 | `FuTseYi/cloudflare-d1-visit-counter` | `Visitors` | 仓库访问量 |
 
-公开 badge URL 只会更新已经存在的 counter。你必须先通过看板或 `/api/create` 创建 counter，这样可以避免别人随便改 URL 就在你的 D1 里创建大量垃圾数据。总计数永久保留；每日趋势数据只保留最近 30 天，用于控制 D1 存储增长。
+公开 badge URL 只会更新已经存在的 counter。你必须先通过看板或 `/api/create` 创建 counter，这样可以避免别人随便改 URL 就在你的 D1 里创建大量垃圾数据。总访问量永久保留；每日趋势数据按 `HISTORY_DAYS` 保留，用来控制 D1 存储增长。
 
 ## 快速部署
 
@@ -123,31 +123,31 @@ CREATE TABLE counters (
 
 创建一个 Cloudflare Worker，把 `worker.js` 的内容复制到 Worker 编辑器。
 
-### 3. 修改配置
-
-在 `worker.js` 顶部修改：
-
-```js
-const ALLOWED_DOMAIN = 'your.domain.com'
-const AUTH_CODE = 'change-this-auth-code'
-const ENABLE_ALLOWLIST = false
-const ALLOWED_PATHS = []
-```
-
-| 配置 | 必填 | 说明 |
-| --- | --- | --- |
-| `ALLOWED_DOMAIN` | 是 | 你的计数器域名，不带 `https://`。其他 Host 会返回 `404`。 |
-| `AUTH_CODE` | 是 | 创建、加载、删除 counter 的管理密钥，必须改掉默认值。 |
-| `ENABLE_ALLOWLIST` | 否 | 开启后只允许 `ALLOWED_PATHS` 中的 counter key。 |
-| `ALLOWED_PATHS` | 否 | 允许使用的 counter key 列表。 |
-
-### 4. 绑定 D1
+### 3. 绑定 D1
 
 在 Worker 设置中添加 D1 binding：
 
 | Binding name | 绑定值 |
 | --- | --- |
 | `HITS` | 你的 D1 数据库 |
+
+### 4. 修改配置
+
+在 `worker.js` 顶部修改：
+
+```js
+const ALLOWED_DOMAIN = 'your.domain.com'
+const AUTH_CODE = 'change-this-auth-code'
+const ALLOWED_PATHS = []
+const HISTORY_DAYS = 30
+```
+
+| 配置 | 必填 | 说明 |
+| --- | --- | --- |
+| `ALLOWED_DOMAIN` | 是 | 你的计数器域名，不带 `https://`。其他 Host 会返回 `404`。 |
+| `AUTH_CODE` | 是 | 创建、加载、删除 counter 的管理密钥，必须改掉默认值。 |
+| `ALLOWED_PATHS` | 否 | 留空表示允许所有已创建 counter；填入列表后只允许这些 counter key。 |
+| `HISTORY_DAYS` | 否 | 趋势图默认显示和 daily 明细保留天数。总访问量不受影响，会永久累计。 |
 
 ### 5. 绑定自定义域名
 
@@ -170,6 +170,23 @@ https://your.domain.com/
 | Count Background | 右侧计数背景色，默认 `#555555`。 |
 | Badge Style | `flat`、`flat-square`、`plastic`、`for-the-badge`、`social`。 |
 | Badge Type | 默认 `today / total`，也可选 `total only`。 |
+
+## 趋势数据保留
+
+只需要改一个配置：
+
+```js
+const HISTORY_DAYS = 30
+```
+
+它同时控制：
+
+- 状态页默认展示天数。
+- `/history/{counter}.svg` 默认展示天数。
+- `?days=` 允许请求的最大天数。
+- D1 中 daily 明细保留天数。
+
+总访问量 `{counter}:total` 永久保留，不会被 daily 清理影响。把 `HISTORY_DAYS` 调大时，现有 daily 数据会继续保留，并从修改后逐步积累到新的天数；已经被清理掉的更早 daily 数据不会恢复。把它调小时，下一次访问触发清理后会删除超出范围的 daily 明细。
 
 生成格式：
 

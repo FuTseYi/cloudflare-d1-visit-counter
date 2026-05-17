@@ -26,13 +26,13 @@ The Worker does not store:
 - Cookie
 - visitor identity
 
-It only stores counter totals, daily totals, and badge configuration. Total counters are retained permanently until deletion. Daily trend rows are retained for the latest 30 days only.
+It only stores counter totals, daily totals, and badge configuration. Total counters are retained permanently until deletion. Daily trend rows are retained for the latest `HISTORY_DAYS` days only.
 
 ## Hardening Options
 
 - Use a long, non-default `AUTH_CODE`.
 - Do not publish `AUTH_CODE` in README, frontend code, issues, or examples.
-- Enable `ENABLE_ALLOWLIST` for fixed counter keys.
+- Fill `ALLOWED_PATHS` if you want to restrict service to fixed counter keys.
 - Add Cloudflare WAF / rate limiting if you expose badges to very high traffic.
 - Consider Turnstile for dashboard access if you later add a login layer.
 

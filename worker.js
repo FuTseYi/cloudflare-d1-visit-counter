@@ -6,11 +6,8 @@
 
 const ALLOWED_DOMAIN = 'your.domain.com'
 const AUTH_CODE = 'change-this-auth-code'
-const ENABLE_ALLOWLIST = false
 const ALLOWED_PATHS = []
-const DEFAULT_HISTORY_DAYS = 30
-const MAX_HISTORY_DAYS = 365
-const DAILY_RETENTION_DAYS = 30
+const HISTORY_DAYS = 30
 const FAVICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M14 46H50" fill="none" stroke="#24292F" stroke-width="4" stroke-linecap="round"/><path d="M16 40L28 31L37 34L50 19" fill="none" stroke="#24292F" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><text x="50" y="58" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="2.2" font-weight="600" fill="#24292F" opacity=".16">FuTseYi</text></svg>'
 const FAVICON_HREF = `data:image/svg+xml,${encodeURIComponent(FAVICON_SVG)}`
 const PROJECT_LOGO_SVG = FAVICON_SVG.replace('<svg ', '<svg class="project-logo" aria-hidden="true" ')
@@ -330,7 +327,9 @@ async function handleStatusPage(url, db) {
     return htmlResponse(renderStatusPage({ counter, error: 'Counter not found' }))
   }
   const daily = await getCounter(db, `${counter}:daily:${today}`)
-  const series = await getDailySeries(db, counter, 30)
+  const historyDays = getHistoryDays()
+  const days = clampInt(url.searchParams.get('days'), historyDays, 1, historyDays)
+  const series = await getDailySeries(db, counter, days)
   return htmlResponse(renderStatusPage({ counter, total, daily, series }))
 }
 async function handleHistoryChart(url, db, counter) {
@@ -342,7 +341,8 @@ async function handleHistoryChart(url, db, counter) {
     return textResponse('Counter not found', 404)
   }
 
-  const days = clampInt(url.searchParams.get('days'), DEFAULT_HISTORY_DAYS, 1, MAX_HISTORY_DAYS)
+  const historyDays = getHistoryDays()
+  const days = clampInt(url.searchParams.get('days'), historyDays, 1, historyDays)
   const width = clampInt(url.searchParams.get('width'), 900, 320, 2400)
   const height = clampInt(url.searchParams.get('height'), 520, 220, 1400)
   const chartType = (url.searchParams.get('chartType') || 'bar').toLowerCase()
@@ -435,11 +435,13 @@ async function incrementCounter(db, key) {
 
 async function cleanupOldDailyData(db, counter, today) {
   const todayNumber = Number(today.replace(/-/g, ''))
+  const historyDays = getHistoryDays()
+  const cleanupMarker = todayNumber * 10000 + historyDays
   const cleanupKey = `${counter}:meta:cleanup`
   const lastCleanup = await getCounter(db, cleanupKey)
-  if (lastCleanup >= todayNumber) return
+  if (lastCleanup === cleanupMarker) return
 
-  const cutoff = offsetDateString(-DAILY_RETENTION_DAYS + 1)
+  const cutoff = offsetDateString(-historyDays + 1)
   const dailyPrefix = `${counter}:daily:`
   await db.prepare(`
     DELETE FROM counters
@@ -452,7 +454,7 @@ async function cleanupOldDailyData(db, counter, today) {
     VALUES (?, ?)
     ON CONFLICT(name)
     DO UPDATE SET count = excluded.count
-  `).bind(cleanupKey, todayNumber).run()
+  `).bind(cleanupKey, cleanupMarker).run()
 }
 async function getDailySeries(db, counter, days) {
   const today = todayString()
@@ -1050,6 +1052,7 @@ function getParam(url, ...names) {
 
 function renderStatusPage({ counter = '', total = 0, daily = 0, series = [], error = '' }) {
   const safeCounter = escapeXml(counter || 'status')
+  const historyDays = getHistoryDays()
   const counts = series.map(item => item.count)
   const highest = counts.length ? Math.max(...counts) : 0
   const lowest = counts.length ? Math.min(...counts) : 0
@@ -1101,13 +1104,13 @@ function renderStatusPage({ counter = '', total = 0, daily = 0, series = [], err
 </head>
 <body>
   <main>
-    ${error ? `<section class="panel error">${escapeXml(error)}</section>` : `<section class="topline"><div class="status-title-row">${PROJECT_LOGO_SVG}<h1>Analytics Overview</h1></div><p class="overview">Overview for</p><div class="target-key">${safeCounter}</div><div class="project-line">Powered by <a class="project-link" href="https://github.com/FuTseYi/cloudflare-d1-visit-counter" target="_blank" rel="noopener noreferrer">cloudflare-d1-visit-counter</a> · Author: <a class="project-link" href="https://github.com/FuTseYi" target="_blank" rel="noopener noreferrer">FuTseYi</a></div></section><section class="center"><p class="sub">Statistics for available daily data, up to 30 days · Last generated: ${updatedAt}</p></section><section class="panel stats"><div class="stat"><div class="value">${daily}</div><div class="label">Today</div></div><div class="stat"><div class="value">${total}</div><div class="label">Total visits</div></div><div class="stat"><div class="value">${series.length}</div><div class="label">Days in chart</div></div><div class="stat"><div class="value">${highest}</div><div class="label">Highest daily</div></div><div class="stat"><div class="value">${lowest}</div><div class="label">Lowest daily</div></div><div class="stat"><div class="value">${averageText}</div><div class="label">Average daily</div></div></section><section class="panel"><div class="chart-wrap">${chart}</div></section>`}
+    ${error ? `<section class="panel error">${escapeXml(error)}</section>` : `<section class="topline"><div class="status-title-row">${PROJECT_LOGO_SVG}<h1>Analytics Overview</h1></div><p class="overview">Overview for</p><div class="target-key">${safeCounter}</div><div class="project-line">Powered by <a class="project-link" href="https://github.com/FuTseYi/cloudflare-d1-visit-counter" target="_blank" rel="noopener noreferrer">cloudflare-d1-visit-counter</a> · Author: <a class="project-link" href="https://github.com/FuTseYi" target="_blank" rel="noopener noreferrer">FuTseYi</a></div></section><section class="center"><p class="sub">Statistics for available daily data, up to ${historyDays} days · Last generated: ${updatedAt}</p></section><section class="panel stats"><div class="stat"><div class="value">${daily}</div><div class="label">Today</div></div><div class="stat"><div class="value">${total}</div><div class="label">Total visits</div></div><div class="stat"><div class="value">${series.length}</div><div class="label">Days in chart</div></div><div class="stat"><div class="value">${highest}</div><div class="label">Highest daily</div></div><div class="stat"><div class="value">${lowest}</div><div class="label">Lowest daily</div></div><div class="stat"><div class="value">${averageText}</div><div class="label">Average daily</div></div></section><section class="panel"><div class="chart-wrap">${chart}</div></section>`}
   </main>
 </body>
 </html>`
 }
 function isCounterAllowed(counter) {
-  return !ENABLE_ALLOWLIST || ALLOWED_PATHS.includes(counter)
+  return ALLOWED_PATHS.length === 0 || ALLOWED_PATHS.includes(counter)
 }
 
 function normalizeBadgeConfig(value = {}) {
@@ -1162,6 +1165,11 @@ function recentDates(days) {
   return dates
 }
 
+function getHistoryDays() {
+  const days = Number.parseInt(HISTORY_DAYS, 10)
+  if (!Number.isFinite(days)) return 30
+  return Math.max(1, days)
+}
 
 function dateRange(firstDate, lastDate) {
   const dates = []

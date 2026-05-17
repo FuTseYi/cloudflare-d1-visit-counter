@@ -40,20 +40,24 @@ CREATE TABLE counters (
 );
 ```
 
-Paste `worker.js` into a Cloudflare Worker and configure:
+Paste `worker.js` into a Cloudflare Worker.
 
-```js
-const ALLOWED_DOMAIN = 'your.domain.com'
-const AUTH_CODE = 'change-this-auth-code'
-const ENABLE_ALLOWLIST = false
-const ALLOWED_PATHS = []
-```
-
-Bind D1:
+Bind D1 before editing config:
 
 | Binding name | Value |
 | --- | --- |
 | `HITS` | Your D1 database |
+
+Configure the top of `worker.js`:
+
+```js
+const ALLOWED_DOMAIN = 'your.domain.com'
+const AUTH_CODE = 'change-this-auth-code'
+const ALLOWED_PATHS = []
+const HISTORY_DAYS = 30
+```
+
+`ALLOWED_PATHS = []` allows all created counters. Once you add values, only those counter keys are accepted.
 
 Then bind a custom domain matching `ALLOWED_DOMAIN` and open:
 
@@ -74,6 +78,18 @@ The dashboard creates counters, previews badges, generates embed links, and mana
 | Count Background | Right-side count color. Default `#555555`. |
 | Badge Style | `flat`, `flat-square`, `plastic`, `for-the-badge`, `social`. |
 | Badge Type | `today / total` by default, or `total only`. |
+
+## History Retention
+
+Use one setting:
+
+```js
+const HISTORY_DAYS = 30
+```
+
+It controls the default status page range, default history SVG range, maximum accepted `?days=` value, and daily row retention in D1.
+
+Total visits are permanent until the counter is deleted. Increasing `HISTORY_DAYS` keeps existing daily rows and lets the chart grow into the new window; daily rows already deleted cannot be restored. Decreasing it removes older daily rows on the next cleanup.
 
 ## Examples
 

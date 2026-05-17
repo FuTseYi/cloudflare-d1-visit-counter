@@ -22,10 +22,10 @@ Returns an SVG badge and increments an existing counter.
 ## Status Page
 
 ```url
-GET /status?path={counterKey}
+GET /status?path={counterKey}&days=30
 ```
 
-Shows today, total visits, and a 30-day trend chart.
+Shows today, total visits, available daily statistics, and a trend chart. `days` is optional and is capped by `HISTORY_DAYS`.
 
 ## Management API
 
@@ -74,5 +74,7 @@ GET /{counterKey}?action=view
 GET /history/{counterKey}.svg?days=30&chartType=bar
 GET /chart/{counterKey}.svg?days=30&chartType=scatter
 ```
+
+`/history` and `/chart` use `HISTORY_DAYS` as the default and maximum range. Total visits remain permanent; daily trend rows are retained only inside the configured history window.
 
 Recommended new integrations should use `/api/combined` and `/status`, because they match the dashboard output.
