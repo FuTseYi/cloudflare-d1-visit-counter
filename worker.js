@@ -69,6 +69,10 @@ async function handleRequest(request, db) {
     return handleMonthlyApi(url, db)
   }
 
+  if (url.pathname === '/history.svg' || url.pathname === '/chart.svg') {
+    return handleHistoryChart(url, db, url.searchParams.get('counter') || url.searchParams.get('path'))
+  }
+
   if (url.pathname === '/example.svg') {
     return svgResponse(generateBadgeSvg({
       title: getParam(url, 'label', 'title') || 'Hits',
@@ -248,7 +252,7 @@ async function handleCounterRequest(url, db, counter, isSvg) {
     total = await incrementExistingCounter(db, totalKey)
     if (total === null) return textResponse('Counter not found', 404)
     daily = await incrementCounter(db, dailyKey)
-    await cleanupOldDailyData(db, counter, today)
+    if (daily === 1) await cleanupOldDailyData(db, counter, today)
   } else {
     total = await getCounterValue(db, totalKey)
     if (total === null) return textResponse('Counter not found', 404)
@@ -308,7 +312,7 @@ async function handleVisitorBadge(url, db) {
     return textResponse('Counter not found', 404)
   }
   const daily = await incrementCounter(db, `${counter}:daily:${today}`)
-  await cleanupOldDailyData(db, counter, today)
+  if (daily === 1) await cleanupOldDailyData(db, counter, today)
 
   return svgResponse(generateBadgeSvg({
     title: getParam(url, 'label', 'title') || 'Visitors',
@@ -340,6 +344,11 @@ async function handleStatusPage(url, db) {
   return htmlResponse(renderStatusPage({ counter, total, daily, series }))
 }
 async function handleHistoryChart(url, db, counter) {
+  counter = normalizeCounterName(counter)
+  if (!counter) {
+    return textResponse('Missing or invalid path', 400)
+  }
+
   if (!isCounterAllowed(counter)) {
     return textResponse('Not Found', 404)
   }
