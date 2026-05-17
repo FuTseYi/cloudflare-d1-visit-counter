@@ -55,6 +55,10 @@ async function handleRequest(request, db) {
     return handleDeleteCounter(request, db)
   }
 
+  if (url.pathname === '/api/preview') {
+    return handlePreviewBadge(url)
+  }
+
   if (url.pathname === '/api/combined') {
     return handleVisitorBadge(url, db)
   }
@@ -269,6 +273,20 @@ async function handleCounterRequest(url, db, counter, isSvg) {
   })
 }
 
+function handlePreviewBadge(url) {
+  const daily = clampInt(url.searchParams.get('daily'), 0, 0, 999999999)
+  const total = clampInt(url.searchParams.get('total'), 0, 0, 999999999)
+  return svgResponse(generateBadgeSvg({
+    title: getParam(url, 'label', 'title') || 'Visitors',
+    titleBg: getParam(url, 'labelColor', 'title_bg') || '#A4D3EE',
+    countBg: getParam(url, 'countColor', 'count_bg') || '#555555',
+    edgeFlat: url.searchParams.get('edge_flat') === 'true',
+    style: url.searchParams.get('style') || 'flat',
+    labelStyle: url.searchParams.get('labelStyle') || 'default',
+    dailyCount: daily,
+    totalCount: total,
+  }), 'public, max-age=60')
+}
 async function handleVisitorBadge(url, db) {
   const counter = normalizeCounterName(url.searchParams.get('counter') || url.searchParams.get('path'))
   if (!counter) {
@@ -620,11 +638,12 @@ function renderGeneratorPage() {
     .counter-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 8px; align-items: center; border: 1px solid #d0d7de; border-radius: 6px; padding: 10px; background: #f6f8fa; }
     .counter-name { overflow-wrap: anywhere; font-weight: 700; }
     .counter-total { color: #57606a; font-size: 12px; margin-top: 6px; }
-    .saved-badge { display: inline-flex; align-items: center; min-height: 20px; border-radius: 3px; overflow: hidden; font-family: Verdana,Geneva,DejaVu Sans,sans-serif; font-size: 11px; line-height: 1; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
-    .saved-badge-label { background: #A4D3EE; color: #24292f; padding: 5px 7px; font-weight: 700; }
+    .saved-badge-img { display: block; width: max-content; max-width: 100%; height: auto; margin-top: 6px; }
+    .saved-badge { display: inline-flex; align-items: center; min-height: 20px; border-radius: 3px; overflow: hidden; font-family: Verdana,Geneva,DejaVu Sans,sans-serif; font-size: 11px; line-height: 1; }
+    .saved-badge-label { background: #A4D3EE; color: #24292f; padding: 5px 7px; font-weight: 400; }
     .saved-badge-count { background: #555555; color: #fff; padding: 5px 7px; }
     .saved-badge-flat-square, .saved-badge-for-the-badge { border-radius: 0; }
-    .saved-badge-for-the-badge { min-height: 28px; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+    .saved-badge-for-the-badge { min-height: 28px; font-size: 12px; font-weight: 700; text-transform: uppercase; }
     .saved-badge-for-the-badge .saved-badge-label, .saved-badge-for-the-badge .saved-badge-count { padding: 8px 9px; }
     .saved-badge-social { background: #fff; border: 1px solid #d0d7de; box-shadow: none; }
     .status-preview { margin-top: 12px; border: 1px dashed #d0d7de; border-radius: 8px; background: #f6f8fa; padding: 14px; }
@@ -643,18 +662,21 @@ function renderGeneratorPage() {
     .hint { margin: 8px 0 0; font-size: 12px; color: #57606a; }
     .empty { color: #6e7781; font-style: italic; }
     .color-field { position: relative; display: grid; gap: 6px; font-size: 13px; font-weight: 650; }
-    .color-button { min-height: 38px; border: 1px solid #d0d7de; border-radius: 6px; padding: 0 12px; color: #fff; font-weight: 700; text-shadow: 0 1px 1px rgba(0,0,0,.25); }
+    .color-button { min-height: 38px; border: 1px solid #d0d7de; border-radius: 6px; padding: 0 12px; color: #fff; font-weight: 700; text-shadow: none; }
     .color-popover { position: absolute; z-index: 20; top: 66px; left: 0; width: 196px; background: #fff; border: 1px solid #d0d7de; border-radius: 6px; box-shadow: 0 12px 28px rgba(31,35,40,.18); padding: 10px; display: none; }
     .color-popover.open { display: block; }
     .color-popover::before { content: ""; position: absolute; top: -8px; left: 90px; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 8px solid #555; }
-    .color-large { height: 78px; border-radius: 4px 4px 0 0; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; text-shadow: 0 1px 1px rgba(0,0,0,.28); }
+    .color-large { height: 78px; border-radius: 4px 4px 0 0; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; text-shadow: none; }
     .palette { display: grid; grid-template-columns: repeat(6, 22px); gap: 9px; padding: 10px 0; }
     .swatch { width: 22px; height: 22px; min-height: 22px; border: 0; border-radius: 4px; padding: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); }
     .hex-input { width: 100%; box-sizing: border-box; min-height: 30px; font-size: 12px; }
+    .toast { position: fixed; right: 18px; bottom: 18px; z-index: 50; background: #24292f; color: #fff; border-radius: 6px; padding: 10px 12px; font-size: 13px; font-weight: 700; box-shadow: 0 10px 24px rgba(31,35,40,.18); opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .18s ease, transform .18s ease; }
+    .toast.show { opacity: 1; transform: translateY(0); }
     @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } .powered-title { font-size: 32px; } .counter-item { grid-template-columns: auto minmax(0, 1fr); } .counter-item button { width: 100%; } .field-title { align-items: flex-start; flex-direction: column; gap: 2px; } .field-note { text-align: left; } }
   </style>
 </head>
 <body>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <main>
     <header class="product-head"><div class="powered-title"><span class="powered-prefix">Powered by</span> <a href="https://github.com/FuTseYi/cloudflare-d1-visit-counter" target="_blank" rel="noopener noreferrer">cloudflare-d1-visit-counter</a></div></header>
     <section class="panel">
@@ -773,6 +795,13 @@ function renderGeneratorPage() {
       input.addEventListener('input', () => setPickerColor(id, input.value))
       setPickerColor(id, input.value)
     }
+    function showToast(message) {
+      const toast = $('toast')
+      toast.textContent = message
+      toast.classList.add('show')
+      clearTimeout(showToast.timer)
+      showToast.timer = setTimeout(() => toast.classList.remove('show'), 1800)
+    }
     function imageUrl(counter) {
       const params = new URLSearchParams({
         path: counter,
@@ -783,6 +812,19 @@ function renderGeneratorPage() {
         labelStyle: $('labelStyle').value,
       })
       return 'https://' + domain + '/api/combined?' + params.toString()
+    }
+    function previewImageUrl(counter, config = {}, counts = {}) {
+      const params = new URLSearchParams({
+        path: counter,
+        label: config.label || $('label').value || 'Visitors',
+        labelColor: config.labelColor || $('labelColor').value || '#A4D3EE',
+        countColor: config.countColor || $('countColor').value || '#555555',
+        style: config.style || $('style').value,
+        labelStyle: config.labelStyle || $('labelStyle').value,
+        daily: String(counts.daily || 0),
+        total: String(counts.total || 0),
+      })
+      return 'https://' + domain + '/api/preview?' + params.toString()
     }
     function statusUrl(counter) {
       return 'https://' + domain + '/status?path=' + encodeURIComponent(counter)
@@ -796,7 +838,7 @@ function renderGeneratorPage() {
       if (!counter || counter !== createdCounter) return
       const image = imageUrl(counter)
       const status = statusUrl(counter)
-      $('badgePreview').src = image
+      $('badgePreview').src = previewImageUrl(counter)
       setCode('markdownCode', '![' + counter + '](' + image + ')')
       setCode('markdownLinkCode', '[![' + counter + '](' + image + ')](' + status + ')')
       setCode('htmlCode', '<a href="' + status + '" target="_blank" rel="noopener noreferrer"><img src="' + image + '" alt="Visitor badge" /></a>')
@@ -825,18 +867,10 @@ function renderGeneratorPage() {
         name.className = 'counter-name'
         name.textContent = item.counter
         const config = item.config || {}
-        const badge = document.createElement('div')
-        badge.className = 'saved-badge saved-badge-' + (config.style || 'flat')
-        const badgeLabel = document.createElement('span')
-        badgeLabel.className = 'saved-badge-label'
-        badgeLabel.textContent = config.label || 'not set'
-        badgeLabel.style.background = config.labelColor || '#A4D3EE'
-        badgeLabel.style.color = readableTextColor(config.labelColor || '#A4D3EE')
-        const badgeCount = document.createElement('span')
-        badgeCount.className = 'saved-badge-count'
-        badgeCount.textContent = config.labelStyle === 'none' ? item.total : (item.daily || 0) + ' / ' + item.total
-        badgeCount.style.background = config.countColor || '#555555'
-        badge.append(badgeLabel, badgeCount)
+        const badge = document.createElement('img')
+        badge.className = 'saved-badge-img'
+        badge.src = previewImageUrl(item.counter, config, { daily: item.daily || 0, total: item.total || 0 })
+        badge.alt = 'Saved badge preview'
         const total = document.createElement('div')
         total.className = 'counter-total'
         total.textContent = 'Total visits: ' + item.total
@@ -895,7 +929,7 @@ function renderGeneratorPage() {
       }
       await loadCounters()
     }
-    async function loadCounters() {
+    async function loadCounters(options = {}) {
       const authCode = $('authCode').value.trim()
       if (!authCode) {
         alert('Auth code is required')
@@ -912,6 +946,8 @@ function renderGeneratorPage() {
         return
       }
       renderCounterList(data.counters || [])
+      if (options.notify) showToast('Created counters loaded')
+      if (options.scroll) $('counterList').closest('.panel').scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
     $('create').addEventListener('click', async () => {
       const counter = counterValue()
@@ -937,8 +973,9 @@ function renderGeneratorPage() {
       createdCounter = counter
       updateOutputs(counter)
       await loadCounters()
+      showToast(data.exists ? 'Counter already exists, links updated' : 'Counter created')
     })
-    $('loadCounters').addEventListener('click', loadCounters)
+    $('loadCounters').addEventListener('click', () => loadCounters({ notify: true, scroll: true }))
     $('selectAllCounters').addEventListener('click', () => {
       const boxes = Array.from(document.querySelectorAll('.counter-select'))
       const shouldSelect = boxes.some(box => !box.checked)
@@ -1167,6 +1204,19 @@ function htmlResponse(html) {
 function textResponse(text, status) {
   return new Response(text, { status })
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
