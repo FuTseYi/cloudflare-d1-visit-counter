@@ -122,10 +122,15 @@ async function handleCreateCounter(request, db) {
   const exists = await counterExists(db, counter)
   if (exists) {
     await setCounterConfig(db, counter, badgeConfig)
+    const today = todayString()
+    const total = await getCounter(db, `${counter}:total`)
+    const daily = await getCounter(db, `${counter}:daily:${today}`)
     return jsonResponse({
       warning: 'Counter already exists',
       exists: true,
       counter,
+      daily,
+      total,
       badge: `https://${ALLOWED_DOMAIN}/${counter}.svg?action=hit`,
       history: `https://${ALLOWED_DOMAIN}/history/${counter}.svg`,
     })
@@ -136,6 +141,8 @@ async function handleCreateCounter(request, db) {
   return jsonResponse({
     success: true,
     counter,
+    daily: 0,
+    total: 0,
     badge: `https://${ALLOWED_DOMAIN}/${counter}.svg?action=hit`,
     history: `https://${ALLOWED_DOMAIN}/history/${counter}.svg`,
   }, 201)
@@ -558,8 +565,7 @@ function generateHistorySvg({ title, series, width, height, chartType, color }) 
   const counts = series.map(item => item.count)
   const highest = counts.length ? Math.max(...counts) : 0
   const lowest = counts.length ? Math.min(...counts) : 0
-  const average = counts.length ? total / counts.length : 0
-  const averageText = Number.isInteger(average) ? String(average) : average.toFixed(1)
+  const averageText = String(Math.round(counts.length ? total / counts.length : 0))
   const summaryText = escapeXml(`Total: ${total} · High: ${highest} · Low: ${lowest} · Avg: ${averageText}`)
   const points = series.map((item, index) => {
     const x = padding.left + index * pointStep
@@ -634,7 +640,7 @@ function renderGeneratorPage() {
     main { max-width: 1120px; margin: 0 auto; padding: 36px 18px 56px; }
     h1 { margin: 0 0 8px; font-size: 32px; letter-spacing: 0; }
     .product-head { margin-bottom: 28px; padding-top: 6px; text-align: center; }
-    .brand-title-row { display: inline-flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
+    .brand-title-row { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
     .project-logo { width: 54px; height: 54px; flex: 0 0 auto; display: block; }
     .powered-title { color: #24292f; font-size: clamp(36px, 5vw, 52px); font-weight: 850; letter-spacing: 0; line-height: 1.12; }
     .powered-title a { color: #0969da; text-decoration: none; }
@@ -757,6 +763,7 @@ function renderGeneratorPage() {
     const domain = location.host
     const $ = id => document.getElementById(id)
     let createdCounter = ''
+    let currentCounts = { daily: 0, total: 0 }
     const paletteColors = ['#D8E3F0', '#F87171', '#64748B', '#2ECC71', '#33C2D8', '#555555', '#E1E95B', '#FF8A65', '#B46AD1', '#A4D3EE', '#FFB6C1', '#FFFFFF']
     function sourceValue() { return $('source').value.trim() }
     function counterValue() { return sourceValue() }
@@ -849,11 +856,12 @@ function renderGeneratorPage() {
       node.textContent = text
       node.classList.remove('empty')
     }
-    function updateOutputs(counter) {
+    function updateOutputs(counter, counts) {
       if (!counter || counter !== createdCounter) return
+      if (counts) currentCounts = { daily: Number(counts.daily) || 0, total: Number(counts.total) || 0 }
       const image = imageUrl(counter)
       const status = statusUrl(counter)
-      $('badgePreview').src = previewImageUrl(counter)
+      $('badgePreview').src = previewImageUrl(counter, {}, currentCounts)
       setCode('markdownCode', '![' + counter + '](' + image + ')')
       setCode('markdownLinkCode', '[![' + counter + '](' + image + ')](' + status + ')')
       setCode('htmlCode', '<a href="' + status + '" target="_blank" rel="noopener noreferrer"><img src="' + image + '" alt="Visitor badge" /></a>')
@@ -902,7 +910,7 @@ function renderGeneratorPage() {
           $('labelStyle').value = config.labelStyle || 'default'
           setPickerColor('labelColor', config.labelColor || '#A4D3EE')
           setPickerColor('countColor', config.countColor || '#555555')
-          updateOutputs(item.counter)
+          updateOutputs(item.counter, { daily: item.daily || 0, total: item.total || 0 })
         })
         const deleteButton = document.createElement('button')
         deleteButton.type = 'button'
@@ -986,7 +994,7 @@ function renderGeneratorPage() {
         return
       }
       createdCounter = counter
-      updateOutputs(counter)
+      updateOutputs(counter, { daily: data.daily || 0, total: data.total || 0 })
       await loadCounters()
       showToast(data.exists ? 'Counter already exists, links updated' : 'Counter created')
     })
@@ -1057,8 +1065,7 @@ function renderStatusPage({ counter = '', total = 0, daily = 0, series = [], err
   const highest = counts.length ? Math.max(...counts) : 0
   const lowest = counts.length ? Math.min(...counts) : 0
   const rangeTotal = counts.reduce((sum, count) => sum + count, 0)
-  const average = counts.length ? rangeTotal / counts.length : 0
-  const averageText = Number.isInteger(average) ? String(average) : average.toFixed(1)
+  const averageText = String(Math.round(counts.length ? rangeTotal / counts.length : 0))
   const chart = error ? '' : generateHistorySvg({
     title: 'Visit Trend',
     series,
@@ -1080,7 +1087,7 @@ function renderStatusPage({ counter = '', total = 0, daily = 0, series = [], err
     body { margin: 0; background: #f6f8fa; color: #24292f; }
     main { max-width: 1080px; margin: 0 auto; padding: 42px 18px 44px; }
     .topline { text-align: center; margin-bottom: 26px; }
-    .status-title-row { display: inline-flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+    .status-title-row { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
     .project-logo { width: 48px; height: 48px; flex: 0 0 auto; display: block; }
     .project-line { margin-top: 12px; color: #57606a; font-size: 14px; }
     .project-line strong { color: #24292f; }
